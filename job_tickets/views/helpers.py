@@ -1433,10 +1433,18 @@ def get_monthly_summary_context(
             'service_parts': float(service_parts_revenue),
             'service_labor': float(service_labor_revenue),
             'stock_sales': float(stock_sales_income),
+            'stock_cogs': float(stock_sales_cogs),
             'stock_purchases': float(stock_purchases_total),
-            'expenses': float(period_overhead_expenses),
-            'vendor_expense': float(vendor_expense),
             'vendor_revenue': float(vendor_revenue),
+            'vendor_expense': float(vendor_expense),
+            'discounts': float(total_discounts),
+            'expenses': float(period_overhead_expenses),
+            'overhead_expenses': float(period_overhead_expenses),
+            'total_cogs': float(overall_expense),
+            'total_net_revenue': float(overall_revenue),
+            'total_expenses': float(period_total_expenses),
+            'net_profit': float(period_net_profit),
+            'margin_pct': float(overall_margin or Decimal('0.0')),
         }),
 
         # Liquidity & Financial Accounts Summary
@@ -2092,13 +2100,15 @@ def calculate_job_totals(jobs, exclude_vendor_charges=False):
             
             # Calculate totals with safe conversion
             job.part_total = sum(safe_decimal(log.part_cost) for log in job_logs)
+            job.stock_total = Decimal('0.00')
             job.service_total = sum(safe_decimal(log.service_charge) for log in job_logs)
-            job.total = job.part_total + job.service_total
+            job.total = job.part_total + job.stock_total + job.service_total
             job.grand_total = max(Decimal('0.00'), job.total - (job.discount_amount or Decimal('0.00')))
 
         except Exception:
             # Fallback to zero for any calculation error
             job.part_total = Decimal('0')
+            job.stock_total = Decimal('0')
             job.service_total = Decimal('0')
             job.total = Decimal('0')
             job.grand_total = Decimal('0')

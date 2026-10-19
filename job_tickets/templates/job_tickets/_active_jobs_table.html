@@ -35,8 +35,9 @@
     </td>
 
     <td style="text-align:right;">₹{{ job.part_total|default_if_none:0|floatformat:2 }}</td>
+    <td style="text-align:right;">₹{{ job.stock_total|default_if_none:0|floatformat:2 }}</td>
     <td style="text-align:right;">₹{{ job.service_total|default_if_none:0|floatformat:2 }}</td>
-    <td style="text-align:right;">₹{{ job.total|default_if_none:0|floatformat:2 }}</td>
+    <td style="text-align:right;"><strong>₹{{ job.total|default_if_none:0|floatformat:2 }}</strong></td>
 
     <td>
       <a href="{% url 'job_detail_technician' job.job_code %}" class="btn btn-primary btn-sm">
@@ -81,7 +82,7 @@
 
 <!-- expandable details row -->
 <tr class="job-details-row" id="details-{{ job.id }}" style="display:none; background:#fbfbfb;">
-  <td colspan="8" style="padding:0;">
+  <td colspan="9" style="padding:0;">
     <div style="padding:12px;">
       <strong>Service lines</strong>
       <table class="table table-sm" style="margin-top:8px;">
@@ -116,7 +117,7 @@
 </tr>
 {% empty %}
 <tr>
-    <td colspan="8" class="text-center">No active jobs currently assigned to you.</td>
+    <td colspan="9" class="text-center">No active jobs currently assigned to you.</td>
 </tr>
 {% endfor %}
 

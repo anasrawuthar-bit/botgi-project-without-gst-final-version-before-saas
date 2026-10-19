@@ -325,7 +325,7 @@ class ReportConsistencyTests(TestCase):
         self.assertIn('id="monthly-tab"', rendered)
         self.assertIn('id="tab-jobs"', rendered)
         self.assertIn('id="tab-monthly"', rendered)
-        self.assertIn('Monthly Closed &amp; Ready for Pickup Breakdown', rendered)
+        self.assertIn('Monthly Revenue, Service Charges &amp; Parts Breakdown', rendered)
 
     def test_technician_report_status_filtering_and_counts(self):
         from django.template.loader import render_to_string
@@ -349,8 +349,8 @@ class ReportConsistencyTests(TestCase):
         self.assertEqual(ctx_all['jobs_count'], 2)
         rendered_all = render_to_string('job_tickets/technician_report_print.html', ctx_all, request=req_all)
         self.assertIn('name="status"', rendered_all)
-        self.assertIn('status=Ready+for+Pickup', rendered_all)
-        self.assertIn('status=Closed', rendered_all)
+        self.assertIn('value="Ready for Pickup"', rendered_all)
+        self.assertIn('value="Closed"', rendered_all)
 
         # 2. Filter: Ready for Pickup
         req_ready = self.request(start_date=self.today.isoformat(), end_date=self.today.isoformat(), status='Ready for Pickup')
@@ -434,8 +434,39 @@ class ReportConsistencyTests(TestCase):
         self.assertIn('Outstanding Balance', content)
         self.assertIn('Ready for Pickup Jobs', content)
         self.assertIn('Ready for Pickup Value', content)
+        self.assertIn('monthlyYearFilterGroup', content)
+        self.assertIn('All Time', content)
+        self.assertIn(str(self.today.year), content)
+        self.assertIn('monthly-data-row', content)
         self.assertNotIn('Closed Value', content)
         self.assertNotIn('Ready for Pickup Receivables', content)
+
+    def test_financial_summary_monthly_breakdown_year_filter(self):
+        closed_job = self.job('REPORT-FIN-YEAR-FILTER-01', status='Closed')
+        self.transition(closed_job, 'Closed', self.start)
+        ServiceLog.objects.create(job_ticket=closed_job, description='Motherboard', part_cost=1000, service_charge=500)
+
+        current_year = str(self.today.year)
+
+        # 1. Default All Time
+        req = self.request(start_date=self.today.isoformat(), end_date=self.today.isoformat())
+        req.user = self.admin
+        req.current_workspace = self.workspace
+        resp = report_views.print_monthly_summary_report(req)
+        self.assertEqual(resp.status_code, 200)
+        content = resp.content.decode()
+        self.assertIn('All Time', content)
+        self.assertIn(current_year, content)
+        self.assertIn(f'"years": ["{current_year}"]', content)
+
+        # 2. Year-wise query parameter
+        req_yr = self.request(start_date=self.today.isoformat(), end_date=self.today.isoformat(), breakdown_year=current_year)
+        req_yr.user = self.admin
+        req_yr.current_workspace = self.workspace
+        resp_yr = report_views.print_monthly_summary_report(req_yr)
+        self.assertEqual(resp_yr.status_code, 200)
+        content_yr = resp_yr.content.decode()
+        self.assertIn(f'data-year="{current_year}"', content_yr)
 
     def test_reports_dashboard_no_longer_renders_monthly_breakdown(self):
         req = self.request(tab='financial', start_date=self.today.isoformat(), end_date=self.today.isoformat())
@@ -445,6 +476,116 @@ class ReportConsistencyTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         content = resp.content.decode()
         self.assertNotIn('Monthly Closed &amp; Ready for Pickup Breakdown', content)
+
+    def test_technician_performance_stock_sales_and_info_buttons(self):
+        from .models import Product, InventoryParty, InventoryBill, InventoryEntry
+
+        # Create a direct over-the-counter stock sale by technician's user
+        tech_user = self.technician.user
+        party = InventoryParty.objects.create(
+            workspace=self.workspace,
+            name='Walk-in Retail Buyer',
+            party_type='customer',
+        )
+        product = Product.objects.create(
+            workspace=self.workspace,
+            name='USB Cable Type-C',
+            sku='CAB-TYPEC-01',
+            cost_price=Decimal('50.00'),
+            unit_price=Decimal('150.00'),
+        )
+        bill = InventoryBill.objects.create(
+            workspace=self.workspace,
+            bill_number='BILL-STOCK-TEST-001',
+            entry_type='sale',
+            entry_date=self.today,
+            party=party,
+            created_by=tech_user,
+        )
+        InventoryEntry.objects.create(
+            workspace=self.workspace,
+            bill=bill,
+            entry_number='ENT-STOCK-TEST-001',
+            entry_type='sale',
+            entry_date=self.today,
+            party=party,
+            product=product,
+            quantity=3,
+            unit_price=Decimal('150.00'),
+            taxable_amount=Decimal('450.00'),
+            total_amount=Decimal('450.00'),
+            created_by=tech_user,
+        )
+
+        # 1. Test reports_dashboard technician tab
+        req = self.request(tab='technician', start_date=self.today.isoformat(), end_date=self.today.isoformat())
+        ctx = self.context(report_views.reports_dashboard, req)
+        tech_perf = [tp for tp in ctx['monthly_tech_performance'] if tp.id == self.technician.id]
+        self.assertEqual(len(tech_perf), 1)
+        self.assertEqual(tech_perf[0].monthly_stock_sales, Decimal('450.00'))
+        self.assertEqual(ctx['tech_total_stock_sales'], Decimal('450.00'))
+
+        res = report_views.reports_dashboard(req)
+        self.assertEqual(res.status_code, 200)
+        html = res.content.decode('utf-8')
+
+        # Check stock sales table headers and explanatory info tooltips
+        self.assertIn('Parts Sales', html)
+        self.assertIn('Stock Sales', html)
+        self.assertIn('About Parts Sales', html)
+        self.assertIn('About Stock Sales', html)
+        self.assertIn('data-bs-toggle="tooltip"', html)
+        self.assertIn('450.00', html)
+
+        # 2. Test staff_technician_reports
+        req2 = self.factory.get('/staff/technicians/reports/')
+        req2.user = self.admin
+        req2.current_workspace = self.workspace
+        ctx2 = self.context(report_views.staff_technician_reports, req2)
+        row = next(r for r in ctx2['tech_rows'] if r['tech'].id == self.technician.id)
+        self.assertEqual(row['stock_total'], Decimal('450.00'))
+
+        res2 = report_views.staff_technician_reports(req2)
+        self.assertEqual(res2.status_code, 200)
+        html2 = res2.content.decode('utf-8')
+        self.assertIn('Stock Sales', html2)
+        self.assertIn('About Parts Total', html2)
+        self.assertIn('About Stock Sales', html2)
+        self.assertIn('450.00', html2)
+
+        # 3. Test technician_report_print view & context
+        req3 = self.factory.get(f'/reports/technician/{self.technician.id}/print/')
+        req3.user = self.admin
+        req3.current_workspace = self.workspace
+        ctx3 = report_views._build_technician_report_context(req3, self.technician.id)
+        self.assertEqual(len(ctx3['stock_sales']), 1)
+        self.assertEqual(ctx3['total_stock_sales_amount'], Decimal('450.00'))
+        self.assertEqual(ctx3['total_stock_profit'], Decimal('300.00'))
+        self.assertIn('stock_sales', ctx3['monthly_chart_json'])
+
+        res3 = report_views.technician_report_print(req3, self.technician.id)
+        self.assertEqual(res3.status_code, 200)
+        html3 = res3.content.decode('utf-8')
+        self.assertIn('tab-stock', html3)
+        self.assertIn('BILL-STOCK-TEST-001', html3)
+        self.assertIn('USB Cable Type-C', html3)
+        self.assertIn('About Stock Sales', html3)
+        self.assertIn('About Part Cost', html3)
+        self.assertIn('About Service Charge', html3)
+        self.assertIn('data-chart-mode="stock"', html3)
+
+        # 4. Test technician_report_export_csv
+        res4 = report_views.technician_report_export_csv(req3, self.technician.id)
+        self.assertEqual(res4.status_code, 200)
+        csv_content = res4.content.decode('utf-8')
+        self.assertIn('Direct Stock Sales', csv_content)
+        self.assertIn('Total Service Charges', csv_content)
+        self.assertIn('Total Combined Revenue (Jobs + Stock),450.00', csv_content)
+        self.assertIn('Total Combined Profit (Jobs + Stock),300.00', csv_content)
+        self.assertIn('BILL-STOCK-TEST-001', csv_content)
+        self.assertIn('USB Cable Type-C', csv_content)
+        self.assertIn('450.00', csv_content)
+
 
 
 class InventoryDashboardAndCreditTests(TestCase):
@@ -562,3 +703,142 @@ class InventoryDashboardAndCreditTests(TestCase):
         # Verify bill is no longer in open receivables
         rows_after = _build_inventory_credit_rows('sale', workspace=self.workspace)
         self.assertFalse(any(r.bill_id == bill.id for r in rows_after))
+
+
+class TechnicianDashboardStockAndQualityTests(TestCase):
+    def setUp(self):
+        self.tech_user = User.objects.create_user(username='john_tech', password='password123')
+        self.workspace = CompanyWorkspace.objects.create(name='Tech Workspace', owner=self.tech_user)
+        tech_group, _ = Group.objects.get_or_create(name='Technicians')
+        self.tech_user.groups.add(tech_group)
+        self.technician = TechnicianProfile.objects.create(
+            workspace=self.workspace,
+            user=self.tech_user,
+            unique_id='TECH-JOHN',
+        )
+
+        from .models import Product, InventoryParty, InventoryBill, InventoryEntry
+
+        # Create a completed job with service charge, parts, and customer feedback
+        self.job = JobTicket.objects.create(
+            workspace=self.workspace,
+            job_code='JOB-TECH-001',
+            customer_name='Alice Customer',
+            customer_phone='9876543210',
+            device_type='Smartphone',
+            device_brand='Apple',
+            device_model='iPhone 13',
+            status='Closed',
+            assigned_to=self.technician,
+            feedback_rating=9,
+            feedback_comment='Amazing repair quality and very fast!',
+            feedback_date=timezone.now(),
+        )
+        ServiceLog.objects.create(
+            job_ticket=self.job,
+            description='Display screen replacement',
+            part_cost=Decimal('2000.00'),
+            service_charge=Decimal('1500.00'),
+        )
+
+        # Create a product and direct over-the-counter stock sale by this technician
+        self.product = Product.objects.create(
+            workspace=self.workspace,
+            name='USB-C Fast Charger 65W',
+            sku='ACC-CHG-65W',
+            unit_price=Decimal('1200.00'),
+            cost_price=Decimal('600.00'),
+        )
+        self.customer_party = InventoryParty.objects.create(
+            workspace=self.workspace,
+            name='Walk-in Retail Buyer',
+            party_type='customer',
+        )
+        self.bill = InventoryBill.objects.create(
+            workspace=self.workspace,
+            bill_number='SB-RETAIL-001',
+            entry_type='sale',
+            entry_date=timezone.localdate(),
+            party=self.customer_party,
+            created_by=self.tech_user,
+        )
+        self.stock_entry = InventoryEntry.objects.create(
+            workspace=self.workspace,
+            bill=self.bill,
+            party=self.customer_party,
+            product=self.product,
+            entry_type='sale',
+            entry_date=timezone.localdate(),
+            quantity=2,
+            unit_price=Decimal('1200.00'),
+            total_amount=Decimal('2400.00'),
+            created_by=self.tech_user,
+        )
+
+    def test_technician_dashboard_stock_sales_and_quality_feedback_render(self):
+        self.client.login(username='john_tech', password='password123')
+        response = self.client.get(reverse('technician_dashboard'))
+        self.assertEqual(response.status_code, 200)
+
+        content = response.content.decode('utf-8')
+
+        # Stock Sales checks - included directly in table with Stock Sale column, no separate table
+        self.assertNotIn('Direct Stock Sales (Retail / Inventory)', content)
+        self.assertIn('Stock Sale', content)
+        self.assertIn('USB-C Fast Charger 65W', content)
+        self.assertIn('2400.00', content)
+        self.assertIn('data-bs-toggle="tooltip"', content)
+        self.assertIn('title="Direct over-the-counter retail inventory product sales', content)
+
+        # Quality & Feedback pill on dashboard
+        self.assertIn('/technician-feedback/', content)
+        self.assertIn('9.0', content)
+        self.assertIn('1 review', content)
+
+        # Dedicated Technician Feedback page check
+        fb_resp = self.client.get(reverse('technician_feedback'))
+        self.assertEqual(fb_resp.status_code, 200)
+        fb_content = fb_resp.content.decode('utf-8')
+        self.assertIn('Quality & Customer Feedback', fb_content)
+        self.assertIn('Amazing repair quality and very fast!', fb_content)
+        self.assertIn('Alice Customer', fb_content)
+        self.assertIn('9/10', fb_content)
+        self.assertIn('Quality Index', fb_content)
+
+        # Service terminology check
+        self.assertIn('Service Charge', content)
+        self.assertNotIn('Labor Charges', content)
+        self.assertNotIn('Technician Labor', content)
+
+    def test_technician_dashboard_ajax_filter_returns_stock_totals(self):
+        self.client.login(username='john_tech', password='password123')
+        response = self.client.get(
+            reverse('technician_dashboard'),
+            {'preset': 'this_month'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn('html', data)
+        self.assertIn('active_jobs_html', data)
+        self.assertEqual(data.get('history_stock_total'), '2400.00')
+        self.assertEqual(data.get('history_stock_count'), 1)
+        self.assertEqual(data.get('history_service_total'), '1500.00')
+        self.assertIn('USB-C Fast Charger 65W', data['html'])
+
+    def test_reports_dashboard_todays_activity_includes_stock_sales(self):
+        admin_user = User.objects.create_user(username='reports_admin', password='password123', is_staff=True)
+        apply_staff_access(admin_user, {'reports_dashboard', 'reports_overview', 'reports_financial'})
+        self.client.login(username='reports_admin', password='password123')
+
+        response = self.client.get(reverse('reports_dashboard'))
+        self.assertEqual(response.status_code, 200)
+
+        content = response.content.decode('utf-8')
+        self.assertIn("Today's activity", content)
+        self.assertIn("Stock Sales", content)
+        self.assertIn("Retail / OTC", content)
+        self.assertIn("Direct over-the-counter retail inventory product sales made today", content)
+        self.assertIn("2400.00", content)
+
+

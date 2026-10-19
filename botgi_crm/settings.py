@@ -66,6 +66,9 @@ WEB_RELEASE_POLL_INTERVAL_SECONDS = env.int('WEB_RELEASE_POLL_INTERVAL_SECONDS',
 WHATSAPP_BRIDGE_AUTO_START = env.bool('WHATSAPP_BRIDGE_AUTO_START', default=True)
 REDIS_URL = env('REDIS_URL', default='redis://127.0.0.1:6379/0')
 CACHE_URL = env('CACHE_URL', default='')
+APP_NAME = env('APP_NAME', default='ZynDesk')
+PLATFORM_COMPANY_NAME = env('PLATFORM_COMPANY_NAME', default='CoreZyn')
+APP_LOGO_URL = env('APP_LOGO_URL', default='https://image.gihostings.com/i/356b7bc7285f8ce2.jpeg')
 
 
 # Application definition
@@ -273,6 +276,7 @@ STORAGES = {
     },
 }
 WHITENOISE_MANIFEST_STRICT = env.bool('WHITENOISE_MANIFEST_STRICT', default=False)
+WHITENOISE_USE_FINDERS = env.bool('WHITENOISE_USE_FINDERS', default=True)
 
 # Media files (uploads)
 MEDIA_URL = '/media/'

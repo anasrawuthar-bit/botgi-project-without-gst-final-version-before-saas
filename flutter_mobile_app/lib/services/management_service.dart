@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
+import '../models/feedback_model.dart';
 import '../models/management_models.dart';
 import 'auth_service.dart';
 
@@ -268,6 +269,37 @@ class ManagementService {
     }
 
     return ReportsSummary.fromJson(body);
+  }
+
+  Future<TechnicianFeedbackResponse> fetchTechnicianFeedback({
+    String rating = 'all',
+    String query = '',
+  }) async {
+    final queryParams = <String, String>{};
+    if (rating.isNotEmpty && rating != 'all') {
+      queryParams['rating'] = rating;
+    }
+    if (query.trim().isNotEmpty) {
+      queryParams['q'] = query.trim();
+    }
+    final uri = Uri.parse('${AppConfig.baseUrl}/api/mobile/technician/feedback/')
+        .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
+
+    final response = await http.get(
+      uri,
+      headers: _authService.authHeaders(),
+    );
+
+    final body = _safeJsonDecode(response.body);
+    if (response.statusCode == 401) {
+      await _authService.logout();
+      throw Exception(body['message'] ?? 'Session expired. Please login again.');
+    }
+    if (response.statusCode != 200) {
+      throw Exception(body['message'] ?? 'Failed to load technician feedback.');
+    }
+
+    return TechnicianFeedbackResponse.fromJson(body);
   }
 
   Map<String, dynamic> _safeJsonDecode(String rawBody) {

@@ -9,6 +9,9 @@ def company_profile(request):
     """Make company profile available in all templates"""
     current_workspace = get_current_workspace(request)
     return {
+        'app_name': getattr(settings, 'APP_NAME', 'ZynDesk'),
+        'platform_company_name': getattr(settings, 'PLATFORM_COMPANY_NAME', 'CoreZyn'),
+        'app_logo_url': getattr(settings, 'APP_LOGO_URL', 'https://image.gihostings.com/i/356b7bc7285f8ce2.jpeg'),
         'current_workspace': current_workspace,
         'company': CompanyProfile.get_profile(current_workspace),
         'platform': PlatformSettings.get_settings(),

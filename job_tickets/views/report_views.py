@@ -1,3 +1,6 @@
+from collections import defaultdict
+from datetime import datetime, timedelta
+
 from .helpers import *  # noqa: F401,F403
 from .helpers import (
     _inventory_bill_total,
@@ -29,7 +32,12 @@ def get_monthly_closed_and_ready_breakdown(workspace=None, technician=None):
     job_map = {j.id: j for j in scoped_jobs}
 
     closed_jobs_map = {}
-    closed_by_month = defaultdict(lambda: {'count': 0, 'value': Decimal('0.00')})
+    closed_by_month = defaultdict(lambda: {
+        'count': 0,
+        'value': Decimal('0.00'),
+        'part_cost': Decimal('0.00'),
+        'service_charge': Decimal('0.00'),
+    })
     for j in scoped_jobs:
         if j.status == 'Closed':
             dt = getattr(j, 'report_closed_at', None) or j.closed_at or j.updated_at
@@ -38,6 +46,8 @@ def get_monthly_closed_and_ready_breakdown(workspace=None, technician=None):
                 m_key = loc_dt.strftime('%Y-%m')
                 closed_by_month[m_key]['count'] += 1
                 closed_by_month[m_key]['value'] += j.grand_total
+                closed_by_month[m_key]['part_cost'] += getattr(j, 'part_total', Decimal('0.00'))
+                closed_by_month[m_key]['service_charge'] += getattr(j, 'service_total', Decimal('0.00'))
                 closed_jobs_map[j.id] = m_key
 
     credit_by_month = defaultdict(lambda: {'bill_total': Decimal('0.00'), 'balance_total': Decimal('0.00'), 'paid_total': Decimal('0.00')})
@@ -69,7 +79,12 @@ def get_monthly_closed_and_ready_breakdown(workspace=None, technician=None):
                 credit_by_month[m_key]['paid_total'] += paid_amount
                 credit_by_month[m_key]['balance_total'] += balance_amount
 
-    ready_by_month = defaultdict(lambda: {'jobs': set(), 'value': Decimal('0.00')})
+    ready_by_month = defaultdict(lambda: {
+        'jobs': set(),
+        'value': Decimal('0.00'),
+        'part_cost': Decimal('0.00'),
+        'service_charge': Decimal('0.00'),
+    })
     for j in scoped_jobs:
         if j.status in ['Ready for Pickup', 'Completed']:
             dt = getattr(j, 'report_completed_at', None) or getattr(j, 'report_date', None) or j.updated_at
@@ -79,12 +94,37 @@ def get_monthly_closed_and_ready_breakdown(workspace=None, technician=None):
                 if j.id not in ready_by_month[m_key]['jobs']:
                     ready_by_month[m_key]['jobs'].add(j.id)
                     ready_by_month[m_key]['value'] += j.grand_total
+                    ready_by_month[m_key]['part_cost'] += getattr(j, 'part_total', Decimal('0.00'))
+                    ready_by_month[m_key]['service_charge'] += getattr(j, 'service_total', Decimal('0.00'))
 
-    all_months = sorted(set(list(closed_by_month.keys()) + list(ready_by_month.keys())), reverse=True)
+    stock_by_month = defaultdict(lambda: Decimal('0.00'))
+    if technician is not None and getattr(technician, 'user_id', None):
+        t_user_id = technician.user_id
+        tech_stock_entries = scope_to_workspace(
+            InventoryEntry.objects.filter(
+                entry_type__in=['sale', 'sale_return'],
+                job_ticket__isnull=True,
+                bill__is_reversed=False,
+            ).filter(
+                Q(created_by_id=t_user_id) | Q(bill__created_by_id=t_user_id)
+            ),
+            workspace,
+        ).values('entry_date', 'entry_type', 'total_amount')
+        for se in tech_stock_entries:
+            ed = se.get('entry_date')
+            if ed:
+                m_key = ed.strftime('%Y-%m')
+                amt = se.get('total_amount') or Decimal('0.00')
+                if se.get('entry_type') == 'sale':
+                    stock_by_month[m_key] += amt
+                elif se.get('entry_type') == 'sale_return':
+                    stock_by_month[m_key] -= amt
+
+    all_months = sorted(set(list(closed_by_month.keys()) + list(ready_by_month.keys()) + list(stock_by_month.keys())), reverse=True)
     monthly_breakdown = []
     for m in all_months:
-        c_info = closed_by_month.get(m, {'count': 0, 'value': Decimal('0.00')})
-        r_info = ready_by_month.get(m, {'jobs': set(), 'value': Decimal('0.00')})
+        c_info = closed_by_month.get(m, {'count': 0, 'value': Decimal('0.00'), 'part_cost': Decimal('0.00'), 'service_charge': Decimal('0.00')})
+        r_info = ready_by_month.get(m, {'jobs': set(), 'value': Decimal('0.00'), 'part_cost': Decimal('0.00'), 'service_charge': Decimal('0.00')})
         cr_info = credit_by_month.get(m, {'bill_total': Decimal('0.00'), 'balance_total': Decimal('0.00')})
         c_val = c_info['value']
         r_val = r_info['value']
@@ -93,27 +133,43 @@ def get_monthly_closed_and_ready_breakdown(workspace=None, technician=None):
         cr_total = cr_info['bill_total']
         cr_bal = cr_info['balance_total']
 
+        p_val = c_info['part_cost'] + r_info['part_cost']
+        s_val = c_info['service_charge'] + r_info['service_charge']
+        stock_val = stock_by_month.get(m, Decimal('0.00'))
+
         # Hide zero months
-        if c_cnt == 0 and r_cnt == 0 and c_val == Decimal('0.00') and r_val == Decimal('0.00') and cr_total == Decimal('0.00') and cr_bal == Decimal('0.00'):
+        if c_cnt == 0 and r_cnt == 0 and c_val == Decimal('0.00') and r_val == Decimal('0.00') and cr_total == Decimal('0.00') and cr_bal == Decimal('0.00') and p_val == Decimal('0.00') and s_val == Decimal('0.00') and stock_val == Decimal('0.00'):
             continue
         try:
             m_dt = datetime.strptime(m, '%Y-%m')
             month_label = m_dt.strftime('%B %Y')
+            month_short = m_dt.strftime('%b %Y')
         except ValueError:
             month_label = m
+            month_short = m
 
         monthly_breakdown.append({
             'month_key': m,
             'month_label': month_label,
+            'month_short': month_short,
             'closed_count': c_cnt,
             'closed_value': c_val,
+            'closed_part_cost': c_info['part_cost'],
+            'closed_service_charge': c_info['service_charge'],
             'credit_bills': cr_total,
             'credit_bill_total': cr_total,
             'credit_balance': cr_bal,
             'outstanding_balance': cr_bal,
             'ready_count': r_cnt,
             'ready_value': r_val,
-            'combined_value': c_val + r_val,
+            'ready_part_cost': r_info['part_cost'],
+            'ready_service_charge': r_info['service_charge'],
+            'stock_sales': stock_val,
+            'combined_value': c_val + r_val + stock_val,
+            'part_cost': p_val,
+            'service_charge': s_val,
+            'parts_value': p_val,
+            'service_value': s_val,
         })
 
     totals = {
@@ -125,7 +181,12 @@ def get_monthly_closed_and_ready_breakdown(workspace=None, technician=None):
         'outstanding_balance': sum(r['outstanding_balance'] for r in monthly_breakdown),
         'ready_count': sum(r['ready_count'] for r in monthly_breakdown),
         'ready_value': sum(r['ready_value'] for r in monthly_breakdown),
+        'stock_sales': sum(r.get('stock_sales', Decimal('0.00')) for r in monthly_breakdown),
         'combined_value': sum(r['combined_value'] for r in monthly_breakdown),
+        'part_cost': sum(r['part_cost'] for r in monthly_breakdown),
+        'service_charge': sum(r['service_charge'] for r in monthly_breakdown),
+        'parts_value': sum(r['part_cost'] for r in monthly_breakdown),
+        'service_value': sum(r['service_charge'] for r in monthly_breakdown),
     }
 
     return monthly_breakdown, totals
@@ -203,6 +264,39 @@ def reports_dashboard(request):
     todays_total_spare = todays_completed_spare + todays_closed_spare
     todays_total_service = todays_completed_service + todays_closed_service
 
+    # Today's Direct Stock Sales (Retail / Over-The-Counter)
+    todays_stock_qs = scope_to_workspace(
+        InventoryEntry.objects.filter(
+            entry_type__in=['sale', 'sale_return'],
+            entry_date=today,
+            job_ticket__isnull=True,
+            bill__is_reversed=False,
+        ),
+        current_workspace,
+    ).select_related('bill', 'party', 'product')
+
+    todays_stock_entries = list(todays_stock_qs)
+    todays_stock_sales_count = len(todays_stock_entries)
+    todays_stock_total = Decimal('0.00')
+    todays_stock_units = 0
+    todays_stock_cogs = Decimal('0.00')
+
+    for entry in todays_stock_entries:
+        amt = entry.total_amount or Decimal('0.00')
+        qty = entry.quantity or 0
+        cost_unit = entry.product.cost_price if (entry.product and entry.product.cost_price) else Decimal('0.00')
+        line_cogs = cost_unit * Decimal(qty)
+        if entry.entry_type == 'sale':
+            todays_stock_total += amt
+            todays_stock_units += qty
+            todays_stock_cogs += line_cogs
+        elif entry.entry_type == 'sale_return':
+            todays_stock_total -= amt
+            todays_stock_units -= qty
+            todays_stock_cogs -= line_cogs
+
+    todays_stock_profit = todays_stock_total - todays_stock_cogs
+
     # --- 3. PERIOD-BASED STATS (for tech/vendor performance tables) ---
     def parse_section_dates(start_str, end_str):
         if start_str and end_str:
@@ -259,17 +353,49 @@ def reports_dashboard(request):
         scope_to_workspace(TechnicianProfile.objects, current_workspace)
         .filter(user__groups__name='Technicians').select_related('user')
     )
+    tech_user_ids = [tp.user_id for tp in tech_profiles if tp.user_id]
+    direct_stock_qs = scope_to_workspace(
+        InventoryEntry.objects.filter(
+            entry_type__in=['sale', 'sale_return'],
+            entry_date__gte=tech_start.date() if hasattr(tech_start, 'date') else tech_start,
+            entry_date__lt=tech_end.date() if hasattr(tech_end, 'date') else tech_end,
+            job_ticket__isnull=True,
+            bill__is_reversed=False,
+        ).filter(
+            Q(created_by_id__in=tech_user_ids) | Q(bill__created_by_id__in=tech_user_ids)
+        ),
+        current_workspace,
+    ).values('created_by_id', 'bill__created_by_id', 'entry_type', 'total_amount')
+
+    tech_stock_map = defaultdict(lambda: Decimal('0.00'))
+    for entry in direct_stock_qs:
+        uid = entry['created_by_id'] or entry['bill__created_by_id']
+        if not uid:
+            continue
+        amt = entry['total_amount'] or Decimal('0.00')
+        if entry['entry_type'] == 'sale':
+            tech_stock_map[uid] += amt
+        elif entry['entry_type'] == 'sale_return':
+            tech_stock_map[uid] -= amt
+
     for tp in tech_profiles:
         agg = tech_log_map.get(tp.id, {})
         tp.jobs_done = tech_count_map.get(tp.id, 0)
         tp.monthly_parts_sales = agg.get('parts', Decimal('0.00'))
+        tp.monthly_stock_sales = tech_stock_map.get(tp.user_id, Decimal('0.00'))
         tp.monthly_service_sales = agg.get('service', Decimal('0.00'))
-        tp.monthly_total_sales = tp.monthly_parts_sales + tp.monthly_service_sales
-    monthly_tech_performance = sorted(tech_profiles, key=lambda x: x.jobs_done, reverse=True)
+        tp.monthly_total_sales = tp.monthly_parts_sales + tp.monthly_stock_sales + tp.monthly_service_sales
+    # Disabled technicians do not show up unless metrics are non-zero
+    visible_tech_performance = [
+        tp for tp in tech_profiles
+        if (getattr(tp.user, 'is_active', True) or tp.jobs_done > 0 or tp.monthly_total_sales > Decimal('0.00'))
+    ]
+    monthly_tech_performance = sorted(visible_tech_performance, key=lambda x: x.jobs_done, reverse=True)
     tech_total_jobs = sum(tp.jobs_done for tp in monthly_tech_performance)
     tech_total_parts_sales = sum((tp.monthly_parts_sales for tp in monthly_tech_performance), Decimal('0.00'))
+    tech_total_stock_sales = sum((tp.monthly_stock_sales for tp in monthly_tech_performance), Decimal('0.00'))
     tech_total_service_sales = sum((tp.monthly_service_sales for tp in monthly_tech_performance), Decimal('0.00'))
-    tech_total_combined_sales = tech_total_parts_sales + tech_total_service_sales
+    tech_total_combined_sales = tech_total_parts_sales + tech_total_stock_sales + tech_total_service_sales
 
     # Vendor performance
     # Vendor detail reports count services returned in the selected period,
@@ -314,6 +440,11 @@ def reports_dashboard(request):
         'todays_closed_spare': todays_closed_spare,
         'todays_closed_service': todays_closed_service,
         'todays_closed_total': todays_closed_total,
+        'todays_stock_sales_count': todays_stock_sales_count,
+        'todays_stock_total': todays_stock_total,
+        'todays_stock_units': todays_stock_units,
+        'todays_stock_cogs': todays_stock_cogs,
+        'todays_stock_profit': todays_stock_profit,
         # Date/period metadata
         'preset': period.get('preset') or request.GET.get('preset', ''),
         'company_start_date': company_start_date.strftime('%Y-%m-%d'),
@@ -347,6 +478,7 @@ def reports_dashboard(request):
         'monthly_tech_performance': monthly_tech_performance,
         'tech_total_jobs': tech_total_jobs,
         'tech_total_parts_sales': tech_total_parts_sales,
+        'tech_total_stock_sales': tech_total_stock_sales,
         'tech_total_service_sales': tech_total_service_sales,
         'tech_total_combined_sales': tech_total_combined_sales,
         'vendor_performance': vendor_performance,
@@ -726,10 +858,76 @@ def _build_technician_report_context(request, tech_id):
         else:
             benchmark_headline = f"Rank #{rank_vol} of {total_active_techs} Active Technicians ({workload_share_pct}% of shop output)"
 
+    # Direct Stock Sales (Over-The-Counter Retail) attributed to this technician
+    stock_qs = scope_to_workspace(
+        InventoryEntry.objects.filter(
+            entry_type__in=['sale', 'sale_return'],
+            job_ticket__isnull=True,
+            bill__is_reversed=False,
+        ).filter(
+            Q(created_by_id=technician.user_id) | Q(bill__created_by_id=technician.user_id)
+        ),
+        workspace,
+    ).select_related('bill', 'party', 'product').order_by('-entry_date', '-id')
+
+    if start_date_str and end_date_str:
+        try:
+            sd = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            ed = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            if ed < sd:
+                sd, ed = ed, sd
+            stock_qs = stock_qs.filter(entry_date__gte=sd, entry_date__lte=ed)
+        except ValueError:
+            pass
+
+    stock_sales = list(stock_qs)
+    stock_sales_count = len(stock_sales)
+    total_stock_sales_amount = Decimal('0.00')
+    total_stock_units = 0
+    total_stock_cogs = Decimal('0.00')
+
+    for entry in stock_sales:
+        qty = entry.quantity or 0
+        amt = entry.total_amount or Decimal('0.00')
+        cost_unit = entry.product.cost_price if (entry.product and entry.product.cost_price) else Decimal('0.00')
+        line_cogs = cost_unit * Decimal(qty)
+        line_profit = amt - line_cogs
+        entry.line_cogs = line_cogs
+        entry.line_profit = line_profit
+
+        if entry.entry_type == 'sale':
+            total_stock_sales_amount += amt
+            total_stock_units += qty
+            total_stock_cogs += line_cogs
+        elif entry.entry_type == 'sale_return':
+            total_stock_sales_amount -= amt
+            total_stock_units -= qty
+            total_stock_cogs -= line_cogs
+
+    total_stock_profit = total_stock_sales_amount - total_stock_cogs
+    total_combined_revenue = total_income + total_stock_sales_amount
+    total_combined_profit = total_profit_all + total_stock_profit
+
     monthly_breakdown, monthly_breakdown_totals = get_monthly_closed_and_ready_breakdown(
         workspace=workspace,
         technician=technician,
     )
+
+    import json
+    chart_rows = list(reversed(monthly_breakdown))
+    monthly_chart_data = {
+        'labels': [r.get('month_short', r.get('month_label', '')) for r in chart_rows],
+        'closed_value': [float(r['closed_value']) for r in chart_rows],
+        'ready_value': [float(r['ready_value']) for r in chart_rows],
+        'stock_sales': [float(r.get('stock_sales', 0)) for r in chart_rows],
+        'combined_value': [float(r['combined_value']) for r in chart_rows],
+        'part_cost': [float(r['part_cost']) for r in chart_rows],
+        'service_charge': [float(r['service_charge']) for r in chart_rows],
+        'closed_count': [r['closed_count'] for r in chart_rows],
+        'ready_count': [r['ready_count'] for r in chart_rows],
+        'total_count': [r['closed_count'] + r['ready_count'] for r in chart_rows],
+    }
+    monthly_chart_json = json.dumps(monthly_chart_data)
 
     return {
         'company': CompanyProfile.get_profile(getattr(request, 'current_workspace', None)),
@@ -768,9 +966,19 @@ def _build_technician_report_context(request, tech_id):
         'benchmark_headline': benchmark_headline,
         'tat_benchmark_text': tat_benchmark_text,
         'ticket_benchmark_text': ticket_benchmark_text,
+        # Direct Stock Sales
+        'stock_sales': stock_sales,
+        'stock_sales_count': stock_sales_count,
+        'total_stock_sales_amount': total_stock_sales_amount,
+        'total_stock_units': total_stock_units,
+        'total_stock_cogs': total_stock_cogs,
+        'total_stock_profit': total_stock_profit,
+        'total_combined_revenue': total_combined_revenue,
+        'total_combined_profit': total_combined_profit,
         # Monthly Closed & Ready for Pickup Breakdown
         'monthly_breakdown': monthly_breakdown,
         'monthly_breakdown_totals': monthly_breakdown_totals,
+        'monthly_chart_json': monthly_chart_json,
         # Pass dates for display in the report header
         'report_start_date': start_date_str,
         'report_end_date': end_date_str,
@@ -838,12 +1046,15 @@ def technician_report_export_csv(request, tech_id):
     writer.writerow(['Fast-Track Rate (<= 24h)', f"{context['fast_track_pct']}%"])
     writer.writerow(['On-Time Delivery Rate', f"{context['on_time_rate']}%" if context['on_time_rate'] is not None else 'N/A'])
     writer.writerow(['Total Parts Sales', money(context['total_parts'])])
-    writer.writerow(['Total Service Sales (Labor Margin)', money(context['total_services'])])
+    writer.writerow(['Total Service Charges', money(context['total_services'])])
     writer.writerow(['Total Discounts', money(context['total_discounts'])])
-    writer.writerow(['Net Revenue', money(context['total_income'])])
+    writer.writerow(['Jobs Net Revenue', money(context['total_income'])])
+    writer.writerow(['Direct Stock Sales (Retail)', money(context['total_stock_sales_amount'])])
+    writer.writerow(['Total Combined Revenue (Jobs + Stock)', money(context['total_combined_revenue'])])
     writer.writerow(['Average Net Per Job', money(context['average_income'])])
     writer.writerow(['Direct Costs / Expenses', money(context['total_expenses'])])
     writer.writerow(['Estimated Net Profit', money(context['total_profit'])])
+    writer.writerow(['Total Combined Profit (Jobs + Stock)', money(context['total_combined_profit'])])
     writer.writerow(['Profit Margin', f"{context['profit_margin_pct']:.1f}%"])
     writer.writerow([])
     writer.writerow([
@@ -856,7 +1067,7 @@ def technician_report_export_csv(request, tech_id):
         'Turnaround (TAT)',
         'Delivery SLA',
         'Part Cost',
-        'Service Charge (Labor)',
+        'Service Charge',
         'Discount',
         'Net Total',
         'Direct Cost',
@@ -881,6 +1092,37 @@ def technician_report_export_csv(request, tech_id):
             money(job.profit),
             request.build_absolute_uri(reverse('staff_job_detail', args=[job.job_code])),
         ])
+
+    if context.get('stock_sales'):
+        writer.writerow([])
+        writer.writerow(['Direct Stock Sales (Retail / Over-The-Counter)'])
+        writer.writerow([
+            'Bill Number',
+            'Invoice',
+            'Date',
+            'Customer / Party',
+            'Product',
+            'SKU',
+            'Quantity',
+            'Unit Price',
+            'Total Amount',
+            'COGS',
+            'Est Profit',
+        ])
+        for entry in context['stock_sales']:
+            writer.writerow([
+                entry.bill.bill_number if entry.bill else entry.entry_number,
+                entry.invoice_number or '',
+                entry.entry_date.strftime('%Y-%m-%d') if entry.entry_date else '',
+                entry.party.name if entry.party else 'Walk-in Customer',
+                entry.product.name if entry.product else '',
+                entry.product.sku if (entry.product and entry.product.sku) else '',
+                entry.quantity,
+                money(entry.unit_price),
+                money(entry.total_amount if entry.entry_type == 'sale' else -entry.total_amount),
+                money(entry.line_cogs),
+                money(entry.line_profit),
+            ])
 
     return response
 
@@ -932,8 +1174,32 @@ def print_monthly_summary_report(request):
     monthly_breakdown, monthly_breakdown_totals = get_monthly_closed_and_ready_breakdown(
         workspace=current_workspace,
     )
+    # Extract only working years with actual activity (months with zero values are already filtered)
+    working_years = sorted(list({r['month_key'][:4] for r in monthly_breakdown if r.get('month_key')}), reverse=True)
+    selected_breakdown_year = request.GET.get('breakdown_year', 'all').strip()
+    if selected_breakdown_year not in working_years and selected_breakdown_year != 'all':
+        selected_breakdown_year = 'all'
+
     context['monthly_breakdown'] = monthly_breakdown
     context['monthly_breakdown_totals'] = monthly_breakdown_totals
+    context['working_years'] = working_years
+    context['selected_breakdown_year'] = selected_breakdown_year
+
+    # Provide monthly trend chart data for animated graphs
+    rev_breakdown = list(reversed(monthly_breakdown))
+    context['monthly_chart_json'] = json.dumps({
+        'labels': [r['month_short'] for r in rev_breakdown],
+        'years': [r['month_key'][:4] for r in rev_breakdown],
+        'month_keys': [r['month_key'] for r in rev_breakdown],
+        'closed_count': [r['closed_count'] for r in rev_breakdown],
+        'closed_value': [float(r['closed_value']) for r in rev_breakdown],
+        'ready_count': [r['ready_count'] for r in rev_breakdown],
+        'ready_value': [float(r['ready_value']) for r in rev_breakdown],
+        'parts_value': [float(r.get('part_cost', 0)) for r in rev_breakdown],
+        'service_value': [float(r.get('service_charge', 0)) for r in rev_breakdown],
+        'credit_bills': [float(r.get('credit_bills', 0)) for r in rev_breakdown],
+        'outstanding_balance': [float(r.get('outstanding_balance', 0)) for r in rev_breakdown],
+    })
     return render(request, 'job_tickets/print_monthly_summary_report.html', context)
 
 @login_required
@@ -1165,7 +1431,12 @@ def staff_technician_reports(request):
         return redirect('unauthorized')
 
     # get all technicians
-    techs = TechnicianProfile.objects.select_related('user').all()
+    current_workspace = getattr(request, 'current_workspace', None)
+    techs = list(
+        scope_to_workspace(TechnicianProfile.objects, current_workspace)
+        .select_related('user')
+        .all()
+    )
 
     # Use aggregated DB queries instead of N+1 Python loops
     from django.db.models import Count, Sum, DecimalField
@@ -1201,14 +1472,50 @@ def staff_technician_reports(request):
         ),
     )
     stats_map = {s.id: s for s in tech_stats}
+    tech_user_ids = [t.user_id for t in techs if t.user_id]
+    direct_stock_qs = scope_to_workspace(
+        InventoryEntry.objects.filter(
+            entry_type__in=['sale', 'sale_return'],
+            job_ticket__isnull=True,
+            bill__is_reversed=False,
+        ).filter(
+            Q(created_by_id__in=tech_user_ids) | Q(bill__created_by_id__in=tech_user_ids)
+        ),
+        current_workspace,
+    ).values('created_by_id', 'bill__created_by_id', 'entry_type', 'total_amount')
+
+    tech_stock_map = defaultdict(lambda: Decimal('0.00'))
+    for entry in direct_stock_qs:
+        uid = entry['created_by_id'] or entry['bill__created_by_id']
+        if not uid:
+            continue
+        amt = entry['total_amount'] or Decimal('0.00')
+        if entry['entry_type'] == 'sale':
+            tech_stock_map[uid] += amt
+        elif entry['entry_type'] == 'sale_return':
+            tech_stock_map[uid] -= amt
+
     tech_rows = []
     for tech in techs:
         s = stats_map.get(tech.id, tech)
+        completed_count = getattr(s, 'completed_count', 0) or 0
+        parts_total = getattr(s, 'parts_total', Decimal('0.00')) or Decimal('0.00')
+        stock_total = tech_stock_map.get(tech.user_id, Decimal('0.00'))
+        service_total = getattr(s, 'service_total', Decimal('0.00')) or Decimal('0.00')
+        total_sales = parts_total + stock_total + service_total
+        is_active = getattr(tech.user, 'is_active', True)
+
+        # Disabled technicians do not show up unless not zero
+        if not is_active and completed_count == 0 and total_sales <= Decimal('0.00'):
+            continue
+
         tech_rows.append({
             'tech': tech,
-            'completed_count': getattr(s, 'completed_count', 0) or 0,
-            'parts_total': getattr(s, 'parts_total', Decimal('0.00')) or Decimal('0.00'),
-            'service_total': getattr(s, 'service_total', Decimal('0.00')) or Decimal('0.00'),
+            'completed_count': completed_count,
+            'parts_total': parts_total,
+            'stock_total': stock_total,
+            'service_total': service_total,
+            'is_disabled': not is_active,
         })
 
     return render(request, 'job_tickets/staff_technician_reports.html', {'tech_rows': tech_rows})

@@ -2227,7 +2227,7 @@ class PlatformSettings(models.Model):
     """Platform-level branding and footer support settings."""
     billing_author_name = models.CharField(
         max_length=200,
-        default="GI HOSTINGS",
+        default="CoreZyn",
         help_text="Footer author name shown as 'Service Billing by ...'",
     )
     support_phone = models.CharField(
@@ -2240,7 +2240,7 @@ class PlatformSettings(models.Model):
         default="+91 9567227005",
         help_text="WhatsApp support number displayed in footer.",
     )
-    website = models.URLField(blank=True, default="https://gihostings.com")
+    website = models.URLField(blank=True, default="https://corezyn.com")
 
     class Meta:
         verbose_name = "Platform Settings"
@@ -2263,6 +2263,11 @@ class PlatformSettings(models.Model):
     @classmethod
     def get_settings(cls):
         settings_obj, created = cls.objects.get_or_create(id=1)
+        if not created and settings_obj.billing_author_name in ("GI HOSTINGS", "GI Hostings", "CoreZen", ""):
+            settings_obj.billing_author_name = "CoreZyn"
+            if settings_obj.website in ("https://gihostings.com", "http://gihostings.com", "https://corezen.in", ""):
+                settings_obj.website = "https://corezyn.com"
+            settings_obj.save(update_fields=['billing_author_name', 'website'])
         return settings_obj
 
 

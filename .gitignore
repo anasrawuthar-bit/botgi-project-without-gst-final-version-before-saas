@@ -24,4 +24,5 @@ kotlin/local.properties
 **/android/app/build/
 **/android/local.properties
 scratch/
+flutter_mobile_app old/
 

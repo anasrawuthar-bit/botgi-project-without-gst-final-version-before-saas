@@ -183,48 +183,79 @@
     .device-form-block {
         border: 1px solid #e2e8f0 !important;
         background: #ffffff;
-        border-radius: 8px;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.03);
+    }
+    .device-form-block .form-control,
+    .device-form-block .form-select {
+        border-color: #cbd5e1;
+        border-radius: 7px;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .device-form-block .form-control:focus,
+    .device-form-block .form-select:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    }
+    .intake-toggle-card {
+        border: 1px solid #e2e8f0 !important;
+        background: #f8fafc;
+        border-radius: 10px;
+        transition: all 0.2s ease;
+    }
+    .intake-toggle-card:hover {
+        border-color: #cbd5e1 !important;
+        background: #ffffff;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+    }
+    .hover-shadow {
+        transition: all 0.15s ease;
+    }
+    .hover-shadow:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        transform: translateY(-1px);
     }
 
     /* Device Sub-Tabs in Step 2 */
     .device-sub-tabs {
         background: #f1f5f9;
-        padding: 3px;
-        border-radius: 8px;
+        padding: 4px;
+        border-radius: 9999px;
     }
     .device-sub-tabs .nav-link {
-        font-size: 0.78rem;
+        font-size: 0.8rem;
         font-weight: 600;
-        padding: 0.3rem 0.7rem;
-        border-radius: 6px;
-        color: var(--text-secondary, #64748b);
+        padding: 0.35rem 0.85rem;
+        border-radius: 9999px;
+        color: #64748b;
         display: inline-flex;
         align-items: center;
-        gap: 0.35rem;
+        gap: 0.4rem;
         border: none;
         background: transparent;
         transition: all 0.15s ease;
     }
     .device-sub-tabs .nav-link:hover {
-        color: var(--text-primary, #0f172a);
+        color: #0f172a;
+        background: rgba(255, 255, 255, 0.6);
     }
     .device-sub-tabs .nav-link.active {
         background: #ffffff;
-        color: var(--primary, #0d6efd);
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        color: #0d6efd;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.08);
     }
     .device-sub-tabs .device-tab-remove {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 15px;
-        height: 15px;
+        width: 16px;
+        height: 16px;
         border-radius: 50%;
-        font-size: 0.7rem;
+        font-size: 0.75rem;
         color: #94a3b8;
         cursor: pointer;
         transition: all 0.15s ease;
-        margin-left: 3px;
+        margin-left: 4px;
         line-height: 1;
     }
     .device-sub-tabs .device-tab-remove:hover {
@@ -523,7 +554,7 @@
 
                         <!-- STEP 2: DEVICE & FAULT DETAILS -->
                         <div class="tab-pane fade" id="intake-step-device" role="tabpanel" aria-labelledby="step-device-tab">
-                            <div class="d-flex justify-content-between align-items-center mb-2.5 pb-2 border-bottom flex-wrap gap-2">
+                            <div class="d-flex justify-content-between align-items-center mb-3 pb-2.5 border-bottom flex-wrap gap-2">
                                 <div class="d-flex align-items-center gap-2 flex-wrap">
                                     <span class="small text-muted d-none d-sm-inline fw-semibold">
                                         <i class="fa-solid fa-laptop-medical text-primary me-1"></i> Devices:
@@ -532,7 +563,7 @@
                                         <!-- Dynamically synced device sub-tabs -->
                                     </ul>
                                 </div>
-                                <button type="button" id="add-device-btn" class="btn btn-sm btn-outline-primary px-3 py-1 rounded-pill fw-semibold shadow-sm d-inline-flex align-items-center gap-1.5" style="font-size: 0.8rem;">
+                                <button type="button" id="add-device-btn" class="btn btn-sm btn-outline-primary px-3 py-1.5 rounded-pill fw-semibold shadow-xs d-inline-flex align-items-center gap-1.5" style="font-size: 0.8rem;">
                                     <i class="fas fa-plus-circle"></i> <span>Add Device</span>
                                 </button>
                             </div>
@@ -540,7 +571,7 @@
                             <div id="device-forms-container" class="tab-content"></div>
 
                             <!-- Step 2 Footer -->
-                            <div class="d-flex justify-content-between align-items-center pt-3 mt-2 border-top flex-wrap gap-2">
+                            <div class="d-flex justify-content-between align-items-center pt-3 mt-3 border-top flex-wrap gap-2">
                                 <button type="button" class="btn btn-sm btn-outline-secondary px-3" id="btn-back-to-customer">
                                     <i class="fa-solid fa-arrow-left me-1"></i> Back
                                 </button>
@@ -740,185 +771,218 @@
 
 
     <template id="device-form-template">
-        <div class="device-form-block tab-pane fade card border shadow-sm p-3 mb-2.5 rounded-3" id="device-pane-INDEX" role="tabpanel" aria-labelledby="device-subtab-INDEX" style="border-color: #e2e8f0 !important; background: #ffffff;">
-            <div class="row g-2.5">
+        <div class="device-form-block tab-pane fade card border shadow-sm p-3.5 p-md-4 mb-3 rounded-3" id="device-pane-INDEX" role="tabpanel" aria-labelledby="device-subtab-INDEX" style="border-color: #e2e8f0 !important; background: #ffffff;">
+            <div class="row g-3">
                 <!-- Previous Service Link Badge / Input -->
-                <div class="col-md-12 device-prev-job-bar mb-1">
+                <div class="col-md-12 device-prev-job-bar">
                     <input type="hidden" name="device_forms[INDEX].original_job_code" class="device-original-job-code" value="">
-                    <div class="device-prev-job-badge-container d-none py-1 px-2.5 rounded-2 bg-warning-subtle border border-warning-subtle d-flex align-items-center justify-content-between gap-2" style="font-size: 0.78rem;">
-                        <div class="d-flex align-items-center gap-1.5 flex-wrap">
-                            <i class="fas fa-history text-warning-emphasis"></i>
-                            <span class="fw-semibold text-warning-emphasis">Linked to Previous Service:</span>
+                    <div class="device-prev-job-badge-container d-none py-2 px-3 rounded-3 border d-flex align-items-center justify-content-between gap-2 shadow-xs" style="font-size: 0.8rem; background-color: #fffbeb; border-color: #fde68a !important;">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="badge bg-warning text-dark"><i class="fas fa-history me-1"></i> Returning Device</span>
+                            <span class="text-secondary fw-medium">Linked to Previous Service:</span>
                             <strong class="text-dark device-prev-job-label font-monospace"></strong>
                             <span class="text-secondary small device-prev-job-meta"></span>
                         </div>
-                        <button type="button" class="btn btn-sm btn-link text-danger p-0 text-decoration-none remove-device-prev-job-btn" style="font-size: 0.74rem;">
-                            <i class="fas fa-times me-0.5"></i> Unlink
+                        <button type="button" class="btn btn-sm btn-outline-danger py-0.5 px-2.5 text-decoration-none remove-device-prev-job-btn" style="font-size: 0.74rem;">
+                            <i class="fas fa-times me-1"></i> Unlink
                         </button>
                     </div>
-                    <div class="device-link-old-job-toggle-box">
-                        <button type="button" class="btn btn-sm btn-link text-primary p-0 text-decoration-none toggle-link-old-job-btn" style="font-size: 0.75rem;">
-                            <i class="fas fa-history me-1"></i> Link an Old Job # to this device
+                    <div class="device-link-old-job-toggle-box d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <button type="button" class="btn btn-sm btn-link text-primary p-0 text-decoration-none toggle-link-old-job-btn fw-semibold d-inline-flex align-items-center gap-1.5" style="font-size: 0.8rem;">
+                            <i class="fas fa-history"></i>
+                            <span>Link an Old Job # to this device</span>
                         </button>
                         <div class="device-link-old-job-input-box d-none mt-1">
                             <div class="input-group input-group-sm" style="max-width: 320px;">
-                                <input type="text" class="form-control form-control-sm device-old-job-query-input" placeholder="e.g. 1042" style="font-family: monospace;">
-                                <button type="button" class="btn btn-outline-primary btn-sm device-old-job-fetch-btn py-0 px-2.5" style="font-size: 0.78rem;">
+                                <input type="text" class="form-control form-control-sm device-old-job-query-input" placeholder="e.g. 1042" style="font-family: monospace; font-weight: 600;">
+                                <button type="button" class="btn btn-primary btn-sm device-old-job-fetch-btn py-1 px-2.5" style="font-size: 0.78rem;">
                                     <i class="fas fa-search me-1"></i> Fetch
                                 </button>
-                                <button type="button" class="btn btn-outline-secondary btn-sm cancel-link-old-job-btn py-0 px-1.5" style="font-size: 0.78rem;">
+                                <button type="button" class="btn btn-outline-secondary btn-sm cancel-link-old-job-btn py-1 px-2" style="font-size: 0.78rem;">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-2 col-sm-6">
-                    <label class="form-label fw-semibold text-secondary small mb-1">
-                        Device Type <span class="text-danger">*</span>
+
+                <!-- Hardware Identity: Row 1 (Type, Brand, Model - spacious 3 columns) -->
+                <div class="col-md-4 col-sm-6">
+                    <label class="form-label fw-semibold text-secondary small mb-1.5 d-flex align-items-center gap-1">
+                        <i class="fa-solid fa-laptop text-primary"></i> Device Type <span class="text-danger">*</span>
                     </label>
-                    <input type="text" name="device_forms[INDEX].device_type" class="form-control form-control-sm device-type-input"
-                        placeholder="e.g. Laptop" list="preset-device-type" data-device-field="device_type" required>
+                    <input type="text" name="device_forms[INDEX].device_type" class="form-control device-type-input"
+                        placeholder="e.g. Laptop, Mobile, Desktop" list="preset-device-type" data-device-field="device_type" required style="font-size: 0.875rem;">
                 </div>
-                <div class="col-md-2 col-sm-6">
-                    <label class="form-label fw-semibold text-secondary small mb-1">
-                        Brand <span class="text-danger">*</span>
+                <div class="col-md-4 col-sm-6">
+                    <label class="form-label fw-semibold text-secondary small mb-1.5 d-flex align-items-center gap-1">
+                        <i class="fa-solid fa-tag text-primary"></i> Brand <span class="text-danger">*</span>
                     </label>
-                    <input type="text" name="device_forms[INDEX].device_brand" class="form-control form-control-sm"
-                        placeholder="e.g. Dell, HP, Apple" list="preset-device-brand" data-device-field="device_brand" required>
+                    <input type="text" name="device_forms[INDEX].device_brand" class="form-control"
+                        placeholder="e.g. Dell, HP, Apple, Lenovo" list="preset-device-brand" data-device-field="device_brand" required style="font-size: 0.875rem;">
                 </div>
-                <div class="col-md-3 col-sm-6">
-                    <label class="form-label fw-semibold text-secondary small mb-1">
-                        Model <span class="text-danger">*</span>
+                <div class="col-md-4 col-sm-12">
+                    <label class="form-label fw-semibold text-secondary small mb-1.5 d-flex align-items-center gap-1">
+                        <i class="fa-solid fa-microchip text-primary"></i> Model <span class="text-danger">*</span>
                     </label>
-                    <input type="text" name="device_forms[INDEX].device_model" class="form-control form-control-sm"
-                        placeholder="e.g. Inspiron 15 3521" required>
+                    <input type="text" name="device_forms[INDEX].device_model" class="form-control"
+                        placeholder="e.g. Inspiron 15 3521" required style="font-size: 0.875rem;">
                 </div>
-                <div class="col-md-3 col-sm-6">
-                    <label class="form-label fw-semibold text-secondary small mb-1">
-                        Serial / IMEI
-                    </label>
-                    <input type="text" name="device_forms[INDEX].device_serial" class="form-control form-control-sm"
-                        placeholder="Serial / IMEI">
+
+                <!-- Hardware Identity: Row 2 (Serial / IMEI & PIN / Pass - spacious 2 columns) -->
+                <div class="col-md-6 col-sm-6">
+                    <div class="d-flex justify-content-between align-items-center mb-1.5">
+                        <label class="form-label fw-semibold text-secondary small mb-0 d-flex align-items-center gap-1">
+                            <i class="fa-solid fa-barcode text-muted"></i> Serial Number / IMEI
+                        </label>
+                        <span class="text-muted" style="font-size: 0.72rem;">Optional</span>
+                    </div>
+                    <input type="text" name="device_forms[INDEX].device_serial" class="form-control"
+                        placeholder="Enter Serial or IMEI" style="font-size: 0.875rem;">
                 </div>
-                <div class="col-md-2 col-sm-6">
-                    <label class="form-label fw-semibold text-secondary small mb-1">
-                        <i class="fas fa-lock text-muted me-1"></i>PIN / Pass
-                    </label>
-                    <input type="text" name="device_forms[INDEX].device_password" class="form-control form-control-sm"
-                        placeholder="PIN, pass">
+                <div class="col-md-6 col-sm-6">
+                    <div class="d-flex justify-content-between align-items-center mb-1.5">
+                        <label class="form-label fw-semibold text-secondary small mb-0 d-flex align-items-center gap-1">
+                            <i class="fas fa-lock text-muted"></i> PIN / Pattern / Password
+                        </label>
+                        <span class="text-muted" style="font-size: 0.72rem;">Optional</span>
+                    </div>
+                    <input type="text" name="device_forms[INDEX].device_password" class="form-control"
+                        placeholder="Device unlock PIN, pattern or password" style="font-size: 0.875rem;">
                 </div>
 
                 <!-- Reported Issue -->
                 <div class="col-md-12">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <label class="form-label fw-semibold text-secondary small mb-0">
-                            Reported Issue / Fault Description <span class="text-danger">*</span>
+                    <div class="d-flex justify-content-between align-items-center mb-1.5 flex-wrap gap-2">
+                        <label class="form-label fw-semibold text-secondary small mb-0 d-flex align-items-center gap-1.5">
+                            <i class="fa-solid fa-triangle-exclamation text-warning"></i>
+                            <span>Reported Issue / Fault Description</span>
+                            <span class="text-danger">*</span>
                         </label>
-                        <span class="text-muted" style="font-size: 0.72rem;">Required</span>
-                    </div>
-                    <textarea name="device_forms[INDEX].reported_issue" class="form-control form-control-sm"
-                        placeholder="Describe problem observed or reported by customer..." rows="2"
-                        data-device-field="reported_issue" required style="font-size: 0.875rem;"></textarea>
-
-                    {% if job_field_presets.reported_issue %}
-                    <div class="input-group input-group-sm mt-1.5 preset-picker" data-target-field="reported_issue" data-mode="append_unique">
-                        <span class="input-group-text bg-light text-muted small py-0.5"><i class="fas fa-list-check me-1"></i> Presets</span>
-                        <select class="form-select form-select-sm preset-select py-0.5" style="font-size: 0.8rem;">
-                            <option value="">Add saved issue...</option>
-                            {% for value in job_field_presets.reported_issue %}
-                            <option value="{{ value }}">{{ value }}</option>
-                            {% endfor %}
-                        </select>
-                        <button type="button" class="btn btn-outline-secondary btn-sm apply-preset-btn py-0.5 px-2">Insert</button>
-                    </div>
-                    {% endif %}
-                </div>
-
-                <!-- Additional Items / Accessories & Rack Location -->
-                <div class="col-md-6">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <label class="form-label fw-semibold text-secondary small mb-0">
-                            Accessories Left with Device
-                        </label>
-                        <span class="text-muted" style="font-size: 0.72rem;">Optional</span>
-                    </div>
-                    <input type="text" name="device_forms[INDEX].additional_items" class="form-control form-control-sm"
-                        placeholder="e.g. Charger, Bag, Mouse" data-device-field="additional_items">
-
-                    {% if job_field_presets.additional_items %}
-                    <div class="input-group input-group-sm mt-1.5 preset-picker" data-target-field="additional_items" data-mode="append_unique">
-                        <span class="input-group-text bg-light text-muted small py-0.5"><i class="fas fa-toolbox me-1"></i> Presets</span>
-                        <select class="form-select form-select-sm preset-select py-0.5" style="font-size: 0.8rem;">
-                            <option value="">Add saved item...</option>
-                            {% for value in job_field_presets.additional_items %}
-                            <option value="{{ value }}">{{ value }}</option>
-                            {% endfor %}
-                        </select>
-                        <button type="button" class="btn btn-outline-secondary btn-sm apply-preset-btn py-0.5 px-2">Insert</button>
-                    </div>
-                    {% endif %}
-                </div>
-
-                <div class="col-md-6">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <label class="form-label fw-semibold text-secondary small mb-0">
-                            <i class="fa-solid fa-boxes-stacked me-1 text-primary"></i> Storage Rack &amp; Slot
-                        </label>
-                        <span class="text-muted" style="font-size: 0.72rem;">Optional</span>
-                    </div>
-                    <div class="input-group input-group-sm">
-                        <select name="device_forms[INDEX].rack" class="form-select form-select-sm device-rack-select" id="rack-INDEX" style="flex: 2;">
-                            <option value="">-- No Rack --</option>
-                            {% regroup active_racks by group as grouped_dashboard_racks %}
-                            {% for grp in grouped_dashboard_racks %}
-                                <optgroup label="{{ grp.grouper }}">
-                                    {% for r in grp.list %}
-                                        <option value="{{ r.id }}" data-total-columns="{{ r.total_columns|default:10 }}">{{ r.name }} ({{ r.total_columns }} cols)</option>
-                                    {% endfor %}
-                                </optgroup>
-                            {% empty %}
-                                {% for r in active_racks %}
-                                    <option value="{{ r.id }}" data-total-columns="{{ r.total_columns|default:10 }}">{{ r.name }} ({{ r.group }})</option>
+                        {% if job_field_presets.reported_issue %}
+                        <div class="input-group input-group-sm preset-picker" data-target-field="reported_issue" data-mode="append_unique" style="max-width: 320px;">
+                            <span class="input-group-text bg-light text-muted small py-1" style="font-size: 0.76rem; border-color: #cbd5e1;">
+                                <i class="fas fa-list-check text-primary me-1"></i> Presets
+                            </span>
+                            <select class="form-select form-select-sm preset-select py-1" style="font-size: 0.8rem; border-color: #cbd5e1;">
+                                <option value="">Add saved issue...</option>
+                                {% for value in job_field_presets.reported_issue %}
+                                <option value="{{ value }}">{{ value }}</option>
                                 {% endfor %}
-                            {% endfor %}
-                        </select>
-                        <span class="input-group-text bg-light text-muted small px-2">Col</span>
-                        <select name="device_forms[INDEX].rack_column" class="form-select form-select-sm device-rack-col-select" id="rack-col-INDEX" style="min-width: 120px;" disabled>
-                            <option value="">--</option>
-                        </select>
+                            </select>
+                            <button type="button" class="btn btn-outline-secondary btn-sm apply-preset-btn py-1 px-2.5" style="border-color: #cbd5e1; font-size: 0.76rem;">Insert</button>
+                        </div>
+                        {% else %}
+                        <span class="text-muted" style="font-size: 0.74rem;">Required</span>
+                        {% endif %}
                     </div>
-                    <div class="rack-slot-hint text-muted d-block mt-0.5" style="font-size: 0.74rem;">
-                        Storage rack &amp; column/slot number
+                    <textarea name="device_forms[INDEX].reported_issue" class="form-control"
+                        placeholder="Describe problem observed or reported by customer (e.g. No display, water damage, slow performance)..." rows="3"
+                        data-device-field="reported_issue" required style="font-size: 0.875rem; border-color: #cbd5e1; border-radius: 8px;"></textarea>
+                </div>
+
+                <!-- Additional Items / Accessories & Rack Location Cards -->
+                <div class="col-md-6">
+                    <div class="p-3 rounded-3 border h-100 d-flex flex-column justify-content-between" style="border-color: #e2e8f0; background: #f8fafc;">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-1.5 flex-wrap gap-1">
+                                <label class="form-label fw-semibold text-secondary small mb-0 d-flex align-items-center gap-1.5">
+                                    <i class="fa-solid fa-toolbox text-secondary"></i>
+                                    <span>Accessories Left with Device</span>
+                                </label>
+                                <span class="text-muted" style="font-size: 0.72rem;">Optional</span>
+                            </div>
+                            <input type="text" name="device_forms[INDEX].additional_items" class="form-control form-control-sm mb-2"
+                                placeholder="e.g. Charger, Bag, Mouse" data-device-field="additional_items"
+                                style="border-color: #cbd5e1; border-radius: 6px; font-size: 0.85rem;">
+                        </div>
+
+                        {% if job_field_presets.additional_items %}
+                        <div class="input-group input-group-sm preset-picker mt-1" data-target-field="additional_items" data-mode="append_unique">
+                            <span class="input-group-text bg-white text-muted small py-1" style="border-color: #cbd5e1; font-size: 0.76rem;">
+                                <i class="fas fa-toolbox text-primary me-1"></i> Presets
+                            </span>
+                            <select class="form-select form-select-sm preset-select py-1" style="border-color: #cbd5e1; font-size: 0.8rem;">
+                                <option value="">Add saved item...</option>
+                                {% for value in job_field_presets.additional_items %}
+                                <option value="{{ value }}">{{ value }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="button" class="btn btn-outline-secondary btn-sm apply-preset-btn py-1 px-2.5" style="border-color: #cbd5e1; font-size: 0.76rem;">Insert</button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="p-3 rounded-3 border h-100 d-flex flex-column justify-content-between" style="border-color: #e2e8f0; background: #f8fafc;">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-1.5 flex-wrap gap-1">
+                                <label class="form-label fw-semibold text-secondary small mb-0 d-flex align-items-center gap-1.5">
+                                    <i class="fa-solid fa-boxes-stacked text-primary"></i>
+                                    <span>Storage Rack &amp; Slot</span>
+                                </label>
+                                <span class="text-muted" style="font-size: 0.72rem;">Optional</span>
+                            </div>
+                            <div class="input-group input-group-sm mb-1.5">
+                                <select name="device_forms[INDEX].rack" class="form-select form-select-sm device-rack-select" id="rack-INDEX" style="flex: 2; border-color: #cbd5e1; font-size: 0.82rem;">
+                                    <option value="">-- No Rack --</option>
+                                    {% regroup active_racks by group as grouped_dashboard_racks %}
+                                    {% for grp in grouped_dashboard_racks %}
+                                        <optgroup label="{{ grp.grouper }}">
+                                            {% for r in grp.list %}
+                                                <option value="{{ r.id }}" data-total-columns="{{ r.total_columns|default:10 }}">{{ r.name }} ({{ r.total_columns }} cols)</option>
+                                            {% endfor %}
+                                        </optgroup>
+                                    {% empty %}
+                                        {% for r in active_racks %}
+                                            <option value="{{ r.id }}" data-total-columns="{{ r.total_columns|default:10 }}">{{ r.name }} ({{ r.group }})</option>
+                                        {% endfor %}
+                                    {% endfor %}
+                                </select>
+                                <span class="input-group-text bg-white text-muted small px-2" style="border-color: #cbd5e1; font-size: 0.76rem;">Col</span>
+                                <select name="device_forms[INDEX].rack_column" class="form-select form-select-sm device-rack-col-select" id="rack-col-INDEX" style="min-width: 120px; border-color: #cbd5e1; font-size: 0.82rem;" disabled>
+                                    <option value="">--</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="rack-slot-hint text-muted d-block mt-auto" style="font-size: 0.75rem;">
+                            Storage rack &amp; column/slot number
+                        </div>
                     </div>
                 </div>
 
                 <!-- Device Photos & Camera Section -->
                 <div class="col-md-12">
-                    <label class="form-label fw-semibold text-secondary small mb-1">
-                        Device Photos (Scratches, Pre-existing Damage)
-                    </label>
-                    <div class="p-2.5 rounded-3 border bg-light">
-                        <div class="d-flex gap-2 flex-wrap align-items-center">
-                            <input type="file" name="device_forms[INDEX].device_photos" id="camera-photo-INDEX"
-                                class="d-none camera-photo-input" accept="image/*" multiple data-photo-kind="camera">
-                            <button type="button" class="btn btn-sm btn-outline-primary photo-trigger-btn shadow-sm py-1 px-2.5"
-                                data-photo-target="camera" style="font-size: 0.78rem;">
-                                <i class="fas fa-camera me-1"></i> Capture Camera Photo
-                            </button>
-                            <input type="file" name="device_forms[INDEX].device_photos" id="gallery-photos-INDEX"
-                                class="d-none photo-input" accept="image/*" multiple data-photo-kind="gallery">
-                            <button type="button" class="btn btn-sm btn-outline-secondary photo-trigger-btn shadow-sm py-1 px-2.5"
-                                data-photo-target="gallery" style="font-size: 0.78rem;">
-                                <i class="fas fa-images me-1"></i> Upload Image Files
-                            </button>
-                            <span class="small text-muted ms-auto photo-status" data-photo-status="gallery" style="font-size: 0.78rem;">
+                    <div class="p-3 rounded-3 border" style="border-color: #e2e8f0; background: #f8fafc;">
+                        <div class="d-flex align-items-center justify-content-between mb-2.5 flex-wrap gap-2">
+                            <label class="form-label fw-semibold text-secondary small mb-0 d-flex align-items-center gap-1.5">
+                                <i class="fas fa-camera text-primary"></i>
+                                <span>Device Photos (Scratches, Pre-existing Damage)</span>
+                            </label>
+                            <span class="badge bg-white text-secondary border photo-status px-2.5 py-1" data-photo-status="gallery" style="font-size: 0.75rem; border-color: #cbd5e1 !important;">
                                 No photos selected
                             </span>
                         </div>
-                        <div class="camera-panel border rounded p-2 mt-2 d-none bg-white">
-                            <div class="camera-preview-shell rounded text-center" style="max-height: 200px; overflow: hidden; background: #000;">
-                                <video class="camera-preview" autoplay muted playsinline style="max-height: 200px; width: 100%; object-fit: contain;"></video>
+                        <div class="d-flex gap-2 flex-wrap align-items-center">
+                            <input type="file" name="device_forms[INDEX].device_photos" id="camera-photo-INDEX"
+                                class="d-none camera-photo-input" accept="image/*" multiple data-photo-kind="camera">
+                            <button type="button" class="btn btn-sm btn-outline-primary photo-trigger-btn shadow-xs py-1.5 px-3 d-inline-flex align-items-center gap-1.5 hover-shadow"
+                                data-photo-target="camera" style="font-size: 0.8rem; border-radius: 6px;">
+                                <i class="fas fa-camera"></i>
+                                <span>Capture Camera Photo</span>
+                            </button>
+                            <input type="file" name="device_forms[INDEX].device_photos" id="gallery-photos-INDEX"
+                                class="d-none photo-input" accept="image/*" multiple data-photo-kind="gallery">
+                            <button type="button" class="btn btn-sm btn-outline-secondary photo-trigger-btn shadow-xs py-1.5 px-3 d-inline-flex align-items-center gap-1.5 hover-shadow"
+                                data-photo-target="gallery" style="font-size: 0.8rem; border-radius: 6px;">
+                                <i class="fas fa-images"></i>
+                                <span>Upload Image Files</span>
+                            </button>
+                        </div>
+                        <div class="camera-panel border rounded-3 p-2.5 mt-2.5 d-none bg-white shadow-sm">
+                            <div class="camera-preview-shell rounded text-center" style="max-height: 220px; overflow: hidden; background: #000;">
+                                <video class="camera-preview" autoplay muted playsinline style="max-height: 220px; width: 100%; object-fit: contain;"></video>
                             </div>
                             <canvas class="camera-canvas d-none"></canvas>
                             <div class="d-flex flex-wrap gap-2 mt-2">
@@ -937,33 +1001,38 @@
 
                 <!-- Warranty & Inspection Checklist Switches -->
                 <div class="col-md-6">
-                    <div class="p-2.5 border rounded-3 bg-light h-100">
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input" type="checkbox" role="switch"
-                                name="device_forms[INDEX].is_under_warranty" id="warranty-INDEX">
-                            <label class="form-check-label fw-semibold text-dark small" for="warranty-INDEX">
-                                Covered Under In-House Warranty
-                            </label>
+                    <div class="p-3 border rounded-3 bg-white h-100 shadow-xs intake-toggle-card d-flex align-items-start gap-2.5" style="border-color: #e2e8f0 !important;">
+                        <div class="form-check form-switch p-0 m-0 d-flex align-items-start gap-2.5 w-100">
+                            <input class="form-check-input ms-0 mt-1 flex-shrink-0" type="checkbox" role="switch"
+                                name="device_forms[INDEX].is_under_warranty" id="warranty-INDEX" style="width: 2.25rem; height: 1.25rem; cursor: pointer;">
+                            <div class="flex-grow-1">
+                                <label class="form-check-label fw-semibold text-dark small d-block mb-0.5" for="warranty-INDEX" style="cursor: pointer;">
+                                    <i class="fa-solid fa-shield-halved text-success me-1"></i> Covered Under In-House Warranty
+                                </label>
+                                <small class="text-muted d-block" style="font-size: 0.74rem; line-height: 1.35;">
+                                    Free rework/warranty repair covered by shop policy.
+                                </small>
+                            </div>
                         </div>
-                        <small class="text-muted d-block ps-4" style="font-size: 0.74rem;">
-                            Free rework/warranty repair covered by shop policy.
-                        </small>
                     </div>
                 </div>
                 <div class="col-md-6 device-checklist-container">
-                    <div class="p-2.5 border rounded-3 bg-light h-100 device-checklist-card">
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input device-checklist-switch" type="checkbox" role="switch"
-                                name="device_forms[INDEX].requires_laptop_inspection_checklist" id="laptop-checklist-INDEX">
-                            <label class="form-check-label fw-semibold text-dark small device-checklist-label" for="laptop-checklist-INDEX">
-                                Require Inspection Checklist
-                            </label>
+                    <div class="p-3 border rounded-3 bg-white h-100 shadow-xs intake-toggle-card device-checklist-card d-flex align-items-start gap-2.5" style="border-color: #e2e8f0 !important;">
+                        <div class="form-check form-switch p-0 m-0 d-flex align-items-start gap-2.5 w-100">
+                            <input class="form-check-input device-checklist-switch ms-0 mt-1 flex-shrink-0" type="checkbox" role="switch"
+                                name="device_forms[INDEX].requires_laptop_inspection_checklist" id="laptop-checklist-INDEX" style="width: 2.25rem; height: 1.25rem; cursor: pointer;">
+                            <div class="flex-grow-1">
+                                <label class="form-check-label fw-semibold text-dark small device-checklist-label d-block mb-0.5" for="laptop-checklist-INDEX" style="cursor: pointer;">
+                                    <i class="fa-solid fa-clipboard-check text-info me-1"></i> Require Inspection Checklist
+                                </label>
+                                <small class="text-muted d-block device-checklist-hint" style="font-size: 0.74rem; line-height: 1.35;">
+                                    Technician must verify checklist before job closure.
+                                </small>
+                            </div>
                         </div>
-                        <small class="text-muted d-block ps-4 device-checklist-hint" style="font-size: 0.74rem;">
-                            Technician must verify checklist before job closure.
-                        </small>
                     </div>
                 </div>
+
                 <div class="col-md-12 d-flex justify-content-end">
                     <button type="button" class="btn btn-sm btn-link text-danger text-decoration-none remove-device-btn d-none p-0 mt-1" style="font-size: 0.76rem;">
                         <i class="fas fa-trash-alt me-1"></i> Remove this device

@@ -76,6 +76,24 @@ class SessionSecurityMiddleware:
         idle_timeout = int(getattr(settings, 'SESSION_IDLE_TIMEOUT_SECONDS', getattr(settings, 'SESSION_COOKIE_AGE', 1800)))
         session_key = request.session.session_key
 
+        if not request.user.is_active:
+            request._audit_session_key = session_key
+            request._session_logout_reason = 'account_disabled'
+            request._session_was_terminated = True
+            logout(request)
+
+            if self._expects_json(request):
+                return JsonResponse(
+                    {
+                        'error': 'account_disabled',
+                        'message': 'This user account is disabled. Please contact your administrator.',
+                    },
+                    status=403,
+                )
+
+            messages.error(request, 'This user account is disabled. Please contact your administrator.')
+            return redirect(f"{reverse('login')}?{self._build_login_query(request.get_full_path(), 'account_disabled')}")
+
         if session_key:
             UserSessionActivity.objects.filter(
                 status=UserSessionActivity.STATUS_ACTIVE,

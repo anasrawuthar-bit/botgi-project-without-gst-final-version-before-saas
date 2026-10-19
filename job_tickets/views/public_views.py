@@ -4,6 +4,7 @@ from .helpers import (
     _parse_autoprint_flag,
     _staff_access_required,
 )
+from ..whatsapp_service import create_receipt_access_token, verify_receipt_access_token
 
 
 def job_creation_success(request, job_code):
@@ -531,8 +532,13 @@ def qr_access(request, job_code):
     """Direct access to job status via QR code without login"""
     job_ticket = get_object_or_404(JobTicket, job_code=job_code)
     token = (request.GET.get('token') or '').strip()
-    if not verify_receipt_access_token(job_ticket, token):
-        return HttpResponseForbidden("Invalid or expired QR link.")
+    if token:
+        if not verify_receipt_access_token(job_ticket, token, max_age_seconds=None):
+            return HttpResponseForbidden("Invalid or expired QR link.")
+    else:
+        token = create_receipt_access_token(job_ticket)
+
+    request.session['customer_job_code'] = job_ticket.job_code
     return redirect(f"{reverse('client_status', args=[job_code])}?token={token}")
 
 def custom_404(request, exception):

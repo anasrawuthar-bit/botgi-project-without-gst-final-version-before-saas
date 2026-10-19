@@ -7,6 +7,7 @@ import '../services/management_service.dart';
 import '../services/notification_service.dart';
 import '../services/tasks_service.dart';
 import 'dashboard_screen.dart';
+import 'feedback_screen.dart';
 import 'job_detail_screen.dart';
 import 'jobs_screen.dart';
 import 'profile_screen.dart';
@@ -268,6 +269,7 @@ class _AppShellState extends State<AppShell> {
         tasksService: widget.tasksService,
         jobsService: widget.jobsService,
       ),
+      FeedbackScreen(managementService: widget.managementService),
       ProfileScreen(authService: widget.authService, onLogout: widget.onLogout),
     ];
 
@@ -303,6 +305,11 @@ class _AppShellState extends State<AppShell> {
               child: const Icon(Icons.task_alt_rounded),
             ),
             label: 'Tasks',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.star_outline_rounded),
+            selectedIcon: Icon(Icons.star_rounded),
+            label: 'Feedback',
           ),
           const NavigationDestination(
             icon: Icon(Icons.person_outline_rounded),

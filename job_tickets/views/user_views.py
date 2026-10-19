@@ -72,6 +72,15 @@ def staff_technicians(request):
 
             managed_user.is_active = not managed_user.is_active
             managed_user.save(update_fields=['is_active'])
+            if not managed_user.is_active:
+                UserSessionActivity.objects.filter(
+                    user=managed_user,
+                    status=UserSessionActivity.STATUS_ACTIVE,
+                ).update(
+                    status=UserSessionActivity.STATUS_EXPIRED,
+                    logout_reason='account_disabled',
+                    logout_at=timezone.now(),
+                )
             action = 'enabled' if managed_user.is_active else 'disabled'
             messages.success(request, f'User {managed_user.username} {action} successfully.')
             return redirect('staff_technicians')

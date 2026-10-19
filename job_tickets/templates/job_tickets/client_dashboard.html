@@ -1,39 +1,14 @@
 {% extends "job_tickets/base.html" %}
 
 {% block title %}Client Management | Service Billing{% endblock %}
+{% block auto_page_title %}{% endblock %}
 
 {% block extra_css %}
 <style>
-    .client-kpi-card {
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
-        background: #ffffff;
-        padding: 1rem 1.25rem;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .client-kpi-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
-    }
-    .client-kpi-label {
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        font-weight: 600;
-        color: #64748b;
-        margin-bottom: 0.25rem;
-    }
-    .client-kpi-number {
-        font-size: 1.45rem;
-        font-weight: 700;
-        color: #0f172a;
-        line-height: 1.1;
-    }
-
     .client-directory-scroll {
         max-height: 600px;
         overflow: auto;
-        border-radius: 12px;
+        border-radius: 8px;
     }
 
     .client-directory-scroll::-webkit-scrollbar {
@@ -50,103 +25,62 @@
         background: #f1f5fb;
     }
 
-    .client-count-badge {
-        font-size: 0.75rem;
-        padding: 0.2rem 0.6rem;
-        border-radius: 999px;
-        background: #eef2ff;
-        color: #1f2a44;
-        border: 1px solid #d9e4f4;
-        font-weight: 700;
-    }
-
-    .client-job-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.35rem;
-        max-height: 150px;
-        overflow: auto;
-        padding-right: 0.25rem;
-    }
-
-    .client-job-list::-webkit-scrollbar {
-        width: 6px;
-    }
-
-    .client-job-list::-webkit-scrollbar-thumb {
-        background: rgba(20, 33, 61, 0.22);
-        border-radius: 999px;
-    }
-
-    .client-job-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.5rem;
-        background: #f8fbff;
-        border: 1px solid #e7eef9;
-        border-radius: 8px;
-        padding: 0.3rem 0.45rem;
-        transition: background 0.2s ease, transform 0.2s ease;
-    }
-
-    .client-job-link {
-        text-decoration: none;
-        color: inherit;
-    }
-
-    .client-job-link:hover {
-        background: #eef5ff;
-        transform: translateY(-1px);
-    }
-
-    .client-job-code {
-        font-weight: 700;
-        font-size: 0.8rem;
-        color: var(--accent-navy);
-    }
-
-    .client-job-meta {
+    .client-table thead th {
+        background-color: #f8fafc;
+        color: #64748b;
         font-size: 0.72rem;
-        color: var(--muted-text);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 0.65rem 0.85rem;
         white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+    }
+
+    .client-table tbody td {
+        padding: 0.7rem 0.85rem;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+        font-size: 0.84rem;
+    }
+
+    .client-table tbody tr:hover td {
+        background-color: #f8fafc;
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="section-container">
-    <!-- Header -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <!-- Header & Action Bar -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-3 border-bottom">
         <div>
-            <h1 class="section-title mb-0"><i class="fas fa-address-book me-2"></i>Client Management</h1>
+            <h1 class="h5 fw-bold mb-1 text-dark">Client Management</h1>
             <p class="text-muted small mb-0">Customer directory, billing balances, and WhatsApp broadcast campaigns</p>
         </div>
-        <div class="d-flex flex-wrap gap-2 align-items-center">
+        <div class="d-flex flex-wrap align-items-center gap-2">
             <!-- Bulk WhatsApp Broadcast Button -->
-            <button type="button" class="btn btn-success btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#bulkCampaignModal">
-                <i class="fab fa-whatsapp me-1"></i>Bulk WhatsApp
+            <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#bulkCampaignModal">
+                Bulk WhatsApp
             </button>
 
             <!-- Export Contacts Dropdown -->
             <div class="dropdown">
-                <button class="btn btn-outline-dark btn-sm dropdown-toggle shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-file-export me-1"></i>Export Contacts
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Export Contacts
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end shadow border-0">
                     <li>
                         <a class="dropdown-item py-2" href="{% url 'export_clients_vcf' %}{% if active_tab != 'all' %}?tab={{ active_tab }}{% endif %}">
-                            <i class="fas fa-id-card text-success me-2"></i><strong>Phone Contacts (.VCF)</strong>
-                            <div class="small text-muted ps-4">Sync to Phone address book to prevent WhatsApp bans</div>
+                            <strong>Phone Contacts (.VCF)</strong>
+                            <div class="small text-muted">Sync to Phone address book to prevent WhatsApp bans</div>
                         </a>
                     </li>
                     <li><hr class="dropdown-divider"></li>
                     <li>
                         <a class="dropdown-item py-2" href="{% url 'export_clients_csv' %}{% if active_tab != 'all' %}?tab={{ active_tab }}{% endif %}">
-                            <i class="fas fa-file-csv text-primary me-2"></i><strong>Spreadsheet (.CSV / Excel)</strong>
-                            <div class="small text-muted ps-4">Export clients with balances and job counts</div>
+                            <strong>Spreadsheet (.CSV / Excel)</strong>
+                            <div class="small text-muted">Export clients with balances and job counts</div>
                         </a>
                     </li>
                 </ul>
@@ -155,16 +89,16 @@
             <!-- Sync Past Tickets Button -->
             <form method="post" action="{% url 'sync_historical_contacts' %}" class="d-inline">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-outline-primary btn-sm shadow-sm" title="Aggregate any unregistered customers from past repair tickets & invoices into this directory">
-                    <i class="fas fa-sync-alt me-1"></i>Sync Past Tickets
+                <button type="submit" class="btn btn-sm btn-outline-secondary" title="Aggregate any unregistered customers from past repair tickets & invoices into this directory">
+                    Sync Past Tickets
                 </button>
             </form>
 
-            <button type="button" class="btn btn-primary btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#addClientModal">
-                <i class="fas fa-user-plus me-1"></i>Add New Client
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addClientModal">
+                Add New Client
             </button>
-            <a href="{% url 'staff_dashboard' %}" class="btn btn-secondary btn-sm">
-                <i class="fas fa-arrow-left me-1"></i>Back
+            <a href="{% url 'staff_dashboard' %}" class="btn btn-sm btn-outline-secondary">
+                Back
             </a>
         </div>
     </div>
@@ -172,31 +106,31 @@
     <!-- KPI Summary Row -->
     <div class="row g-3 mb-4">
         <div class="col-6 col-md-3">
-            <div class="client-kpi-card h-100">
-                <div class="client-kpi-label"><i class="fas fa-users me-1 text-primary"></i>Total Clients</div>
-                <div class="client-kpi-number">{{ total_clients }}</div>
-                <div class="small text-muted mt-1">Registered clients</div>
+            <div class="card border rounded-3 p-3 shadow-sm bg-white h-100">
+                <div class="text-muted small fw-semibold text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.03em;">Total Clients</div>
+                <div class="fs-5 fw-bold text-dark mb-0">{{ total_clients }}</div>
+                <small class="text-muted mt-1 d-block" style="font-size: 0.78rem;">Registered clients</small>
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="client-kpi-card h-100 border-danger-subtle bg-danger bg-opacity-10">
-                <div class="client-kpi-label text-danger"><i class="fas fa-hand-holding-dollar me-1 text-danger"></i>Total Receivables</div>
-                <div class="client-kpi-number text-danger">&#8377;{{ total_receivable_amount|floatformat:2 }}</div>
-                <div class="small text-danger mt-1">Outstanding credit due</div>
+            <div class="card border rounded-3 p-3 shadow-sm bg-white h-100">
+                <div class="text-muted small fw-semibold text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.03em;">Total Receivables</div>
+                <div class="fs-5 fw-bold text-danger mb-0">&#8377;{{ total_receivable_amount|floatformat:2 }}</div>
+                <small class="text-muted mt-1 d-block" style="font-size: 0.78rem;">Outstanding credit due</small>
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="client-kpi-card h-100">
-                <div class="client-kpi-label"><i class="fas fa-user-clock me-1 text-warning"></i>Credit Due Clients</div>
-                <div class="client-kpi-number text-warning-emphasis">{{ credit_due_clients_count }}</div>
-                <div class="small text-muted mt-1">Clients with balance</div>
+            <div class="card border rounded-3 p-3 shadow-sm bg-white h-100">
+                <div class="text-muted small fw-semibold text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.03em;">Credit Due Clients</div>
+                <div class="fs-5 fw-bold text-dark mb-0">{{ credit_due_clients_count }}</div>
+                <small class="text-muted mt-1 d-block" style="font-size: 0.78rem;">Clients with balance</small>
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="client-kpi-card h-100">
-                <div class="client-kpi-label"><i class="fas fa-wrench me-1 text-info"></i>Active Jobs</div>
-                <div class="client-kpi-number text-info">{{ active_jobs_count }}</div>
-                <div class="small text-muted mt-1">Under inspection / repair</div>
+            <div class="card border rounded-3 p-3 shadow-sm bg-white h-100">
+                <div class="text-muted small fw-semibold text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.03em;">Active Jobs</div>
+                <div class="fs-5 fw-bold text-dark mb-0">{{ active_jobs_count }}</div>
+                <small class="text-muted mt-1 d-block" style="font-size: 0.78rem;">Under inspection / repair</small>
             </div>
         </div>
     </div>
@@ -205,7 +139,7 @@
     {% if recent_campaigns %}
     <div class="card-box mb-3 p-3 bg-light border">
         <div class="d-flex justify-content-between align-items-center mb-2">
-            <h6 class="mb-0 fw-bold text-dark"><i class="fab fa-whatsapp text-success me-1"></i>Recent WhatsApp Broadcasts</h6>
+            <h6 class="mb-0 fw-bold text-dark">Recent WhatsApp Broadcasts</h6>
             <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 text-muted" data-bs-toggle="collapse" data-bs-target="#campaignsCollapse">
                 <i class="fas fa-chevron-down"></i>
             </button>
@@ -248,19 +182,19 @@
                 <li class="nav-item">
                     <a href="?tab=all{% if query %}&q={{ query }}{% endif %}"
                        class="nav-link btn-sm fw-semibold {% if active_tab == 'all' %}active{% else %}bg-light text-dark{% endif %}">
-                        <i class="fas fa-list me-1"></i>All Clients ({{ total_clients }})
+                        All Clients ({{ total_clients }})
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="?tab=credit_due{% if query %}&q={{ query }}{% endif %}"
                        class="nav-link btn-sm fw-semibold {% if active_tab == 'credit_due' %}active btn-danger{% else %}bg-light text-danger{% endif %}">
-                        <i class="fas fa-exclamation-circle me-1"></i>Credit Due ({{ credit_due_clients_count }})
+                        Credit Due ({{ credit_due_clients_count }})
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="?tab=repeat{% if query %}&q={{ query }}{% endif %}"
                        class="nav-link btn-sm fw-semibold {% if active_tab == 'repeat' %}active{% else %}bg-light text-dark{% endif %}">
-                        <i class="fas fa-star me-1 text-warning"></i>Repeat Clients ({{ repeat_clients_count }})
+                        Repeat Clients ({{ repeat_clients_count }})
                     </a>
                 </li>
             </ul>
@@ -270,9 +204,9 @@
                     <input type="hidden" name="tab" value="{{ active_tab }}">
                 {% endif %}
                 <input type="text" name="q" class="form-control form-control-sm" placeholder="Search name, phone, company..." value="{{ query }}">
-                <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-search"></i></button>
+                <button type="submit" class="btn btn-outline-primary btn-sm px-3">Search</button>
                 {% if query %}
-                    <a href="?tab={{ active_tab }}" class="btn btn-outline-secondary btn-sm" title="Clear Search"><i class="fas fa-times"></i></a>
+                    <a href="?tab={{ active_tab }}" class="btn btn-outline-secondary btn-sm" title="Clear Search">Clear</a>
                 {% endif %}
             </form>
         </div>
@@ -280,12 +214,11 @@
         <!-- Selection Action Bar -->
         <div id="selectionBar" class="alert alert-success py-2 px-3 {% if not selected_client_count %}d-none{% endif %} d-flex justify-content-between align-items-center mb-3 shadow-sm border-success">
             <div>
-                <i class="fas fa-check-circle me-1 text-success"></i>
                 <strong><span id="selectedCount">{{ selected_client_count|default:0 }}</span> client(s) selected</strong>
             </div>
             <div class="d-flex gap-2">
                 <button type="button" class="btn btn-sm btn-success fw-semibold" id="broadcastSelectedBtn">
-                    <i class="fab fa-whatsapp me-1"></i>Send WhatsApp to Selected
+                    Send WhatsApp to Selected
                 </button>
                 <button type="button" class="btn btn-sm btn-outline-secondary" id="clearSelectionBtn">
                     Clear Selection
@@ -294,15 +227,15 @@
         </div>
 
         <!-- Directory Table -->
-        <div class="table-responsive client-directory-scroll sticky-header">
-            <table class="table table-striped table-hover align-middle">
+        <div class="table-responsive client-directory-scroll sticky-header border rounded-3">
+            <table class="table table-hover client-table align-middle mb-0">
                 <thead>
                     <tr>
                         <th style="width: 38px;">
                             <input type="checkbox" id="selectAllClients" class="form-check-input" title="Select All Displayed">
                         </th>
                         <th>Client</th>
-                        <th>Phone & Communication</th>
+                        <th>Phone &amp; Communication</th>
                         <th>Financial Balance</th>
                         <th>Devices</th>
                         <th>Recent Jobs</th>
@@ -317,31 +250,34 @@
                             </td>
                             <!-- Name & Company -->
                             <td>
-                                <a href="{% url 'client_detail' client.id %}" class="fw-bold text-decoration-none text-dark fs-6 d-block">
+                                <a href="{% url 'client_detail' client.id %}" class="fw-bold text-decoration-none text-dark d-block" style="font-size: 0.9rem;">
                                     {{ client.name }}
                                 </a>
                                 {% if client.company_name %}
                                     <span class="badge bg-light text-dark border small mt-1">{{ client.company_name }}</span>
                                 {% endif %}
                                 {% if client.address %}
-                                    <div class="small text-muted text-truncate mt-1" style="max-width: 180px;" title="{{ client.address }}">
-                                        <i class="fas fa-map-marker-alt me-1"></i>{{ client.address }}
+                                    <div class="small text-muted text-truncate mt-0.5" style="max-width: 200px;" title="{{ client.address }}">
+                                        {{ client.address }}
                                     </div>
                                 {% endif %}
                             </td>
 
                             <!-- Phone & Communication Shortcuts -->
                             <td>
-                                <div class="fw-semibold">{{ client.phone }}</div>
-                                <div class="d-flex gap-1 mt-1">
+                                <a href="tel:{{ client.phone }}" class="fw-semibold text-decoration-none text-dark d-block">
+                                    {{ client.phone }}
+                                </a>
+                                <div class="mt-0.5" style="font-size: 0.75rem;">
                                     {% if client.whatsapp_url %}
                                     <a href="{{ client.whatsapp_url }}?text=Hello%20{{ client.name|urlencode }},%20greeting%20from%20our%20service%20center."
-                                       target="_blank" class="btn btn-sm btn-outline-success py-0 px-2" title="Chat on WhatsApp">
-                                        <i class="fab fa-whatsapp"></i>
+                                       target="_blank" class="text-success text-decoration-none fw-semibold">
+                                        WhatsApp
                                     </a>
+                                    <span class="text-muted mx-1">&bull;</span>
                                     {% endif %}
-                                    <a href="tel:{{ client.phone }}" class="btn btn-sm btn-outline-primary py-0 px-2" title="Call Client">
-                                        <i class="fas fa-phone"></i>
+                                    <a href="tel:{{ client.phone }}" class="text-primary text-decoration-none fw-semibold">
+                                        Call
                                     </a>
                                 </div>
                             </td>
@@ -383,19 +319,17 @@
                             <!-- Recent Jobs List -->
                             <td>
                                 {% if client.jobs %}
-                                    <div class="client-job-list">
-                                        {% for job in client.jobs|slice:":3" %}
-                                            <a class="client-job-item client-job-link" href="{% url 'staff_job_detail' job.job_code %}" aria-label="View job {{ job.job_code }}">
-                                                <div class="client-job-details">
-                                                    <div class="client-job-code">#{{ job.job_code }}</div>
-                                                    <div class="client-job-meta">
-                                                        {{ job.device_type|default:"Device" }} - &#8377;{{ job.net_total|default_if_none:0|floatformat:0 }}
-                                                    </div>
-                                                </div>
-                                                <span class="badge bg-secondary-subtle text-dark border small" style="font-size: 0.68rem;">
+                                    <div class="d-flex flex-column gap-1">
+                                        {% for job in client.jobs|slice:":2" %}
+                                            <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                                                <a class="fw-semibold text-decoration-none text-primary" href="{% url 'staff_job_detail' job.job_code %}" style="font-size: 0.82rem;">
+                                                    #{{ job.job_code }}
+                                                </a>
+                                                <span class="text-muted" style="font-size: 0.75rem;">{{ job.device_type|default:"Device" }} &bull; &#8377;{{ job.net_total|default_if_none:0|floatformat:0 }}</span>
+                                                <span class="badge bg-light text-secondary border" style="font-size: 0.68rem;">
                                                     {{ job.status }}
                                                 </span>
-                                            </a>
+                                            </div>
                                         {% endfor %}
                                     </div>
                                 {% else %}
@@ -405,8 +339,8 @@
 
                             <!-- Action Buttons -->
                             <td class="text-end">
-                                <div class="d-flex gap-1 justify-content-end">
-                                    <button type="button" class="btn btn-outline-warning btn-sm edit-client-btn text-dark"
+                                <div class="d-inline-flex gap-1.5 justify-content-end align-items-center">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary edit-client-btn"
                                             title="Edit Client"
                                             data-id="{{ client.id }}"
                                             data-name="{{ client.name }}"
@@ -415,10 +349,10 @@
                                             data-company="{{ client.company_name|default:'' }}"
                                             data-address="{{ client.address|default:'' }}"
                                             data-notes="{{ client.notes|default:'' }}">
-                                        <i class="fas fa-edit"></i>
+                                        Edit
                                     </button>
-                                    <a href="{% url 'client_detail' client.id %}" class="btn btn-outline-primary btn-sm" title="View 360° Profile & Ledger">
-                                        <i class="fas fa-eye"></i>
+                                    <a href="{% url 'client_detail' client.id %}" class="btn btn-sm btn-outline-primary" title="View 360° Profile & Ledger">
+                                        View
                                     </a>
                                 </div>
                             </td>
@@ -426,7 +360,7 @@
                     {% empty %}
                         <tr>
                             <td colspan="7" class="text-center py-4 text-muted">
-                                <i class="fas fa-users-slash fa-2x mb-2 d-block"></i>No clients found matching your filter.
+                                No clients found matching your filter.
                             </td>
                         </tr>
                     {% endfor %}
@@ -438,20 +372,20 @@
     <!-- Add Client Modal -->
     <div class="modal fade quick-pop-modal" id="addClientModal" tabindex="-1" aria-labelledby="addClientModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addClientModalLabel"><i class="fas fa-user-plus me-2"></i>Add New Client</h5>
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-bottom bg-light py-2.5 px-4">
+                    <h5 class="modal-title fw-bold text-dark" id="addClientModalLabel">Add New Client</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form method="post">
-                    <div class="modal-body">
+                    <div class="modal-body p-4">
                         {% csrf_token %}
                         {% if client_form.non_field_errors %}
                             <div class="alert alert-danger py-2">{{ client_form.non_field_errors|striptags }}</div>
                         {% endif %}
                         {% for field in client_form %}
                             <div class="mb-3">
-                                <label class="form-label fw-semibold">{{ field.label }}</label>
+                                <label class="form-label fw-semibold small">{{ field.label }}</label>
                                 {{ field }}
                                 {% if field.errors %}
                                     <div class="text-danger small mt-1">{{ field.errors|striptags }}</div>
@@ -459,10 +393,10 @@
                             </div>
                         {% endfor %}
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" name="add_client_submit" class="btn btn-primary">
-                            <i class="fas fa-save me-1"></i>Save Client
+                    <div class="modal-footer border-top bg-light py-2.5 px-4">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" name="add_client_submit" class="btn btn-sm btn-primary px-3">
+                            Save Client
                         </button>
                     </div>
                 </form>
@@ -473,45 +407,45 @@
     <!-- Edit Client Dynamic Modal -->
     <div class="modal fade" id="editClientModal" tabindex="-1" aria-labelledby="editClientModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-warning-subtle text-dark">
-                    <h5 class="modal-title fw-bold" id="editClientModalLabel"><i class="fas fa-user-edit me-2"></i>Edit Client Details</h5>
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-bottom bg-light py-2.5 px-4">
+                    <h5 class="modal-title fw-bold text-dark" id="editClientModalLabel">Edit Client Details</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form method="post" id="editClientForm" action="">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                    <div class="modal-body">
+                    <div class="modal-body p-4">
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Customer Name <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold small">Customer Name <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="edit_name" name="name" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Phone Number <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold small">Phone Number <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="edit_phone" name="phone" required>
-                            <small class="text-muted">10-digit Indian phone number.</small>
+                            <small class="text-muted" style="font-size: 0.75rem;">10-digit Indian phone number.</small>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Email Address</label>
+                            <label class="form-label fw-semibold small">Email Address</label>
                             <input type="email" class="form-control" id="edit_email" name="email">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Company / Shop Name</label>
+                            <label class="form-label fw-semibold small">Company / Shop Name</label>
                             <input type="text" class="form-control" id="edit_company" name="company_name">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Address</label>
+                            <label class="form-label fw-semibold small">Address</label>
                             <textarea class="form-control" id="edit_address" name="address" rows="2"></textarea>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Internal Notes</label>
+                            <label class="form-label fw-semibold small">Internal Notes</label>
                             <textarea class="form-control" id="edit_notes" name="notes" rows="2"></textarea>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-warning text-dark fw-semibold">
-                            <i class="fas fa-save me-1"></i>Save Changes
+                    <div class="modal-footer border-top bg-light py-2.5 px-4">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-sm btn-primary px-3">
+                            Save Changes
                         </button>
                     </div>
                 </form>
@@ -523,15 +457,12 @@
     <div class="modal fade quick-pop-modal" id="bulkCampaignModal" tabindex="-1" aria-labelledby="bulkCampaignModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content shadow-lg border-0">
-                <div class="modal-header bg-success text-white py-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="fab fa-whatsapp fa-lg"></i>
-                        <div>
-                            <h5 class="modal-title fw-bold mb-0" id="bulkCampaignModalLabel">WhatsApp Broadcast Campaign</h5>
-                            <small class="text-white-50">Safe, personalized mass communication with anti-ban pacing</small>
-                        </div>
+                <div class="modal-header border-bottom bg-light py-2.5 px-4">
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark mb-0" id="bulkCampaignModalLabel">WhatsApp Broadcast Campaign</h5>
+                        <small class="text-muted">Safe, personalized mass communication with anti-ban pacing</small>
                     </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form method="post" action="{% url 'create_bulk_campaign' %}" id="bulkCampaignForm">
                     {% csrf_token %}
@@ -540,9 +471,8 @@
                     <div class="modal-body p-4">
                         <!-- Anti-Ban Protection Banner -->
                         <div class="alert alert-success bg-success bg-opacity-10 border border-success border-opacity-25 rounded-3 p-3 mb-3 d-flex align-items-start gap-2">
-                            <i class="fas fa-shield-alt text-success fs-5 mt-1"></i>
                             <div class="small">
-                                <strong class="text-success d-block">WhatsApp Anti-Ban Safeguards Active</strong>
+                                <strong class="text-success d-block mb-1">WhatsApp Anti-Ban Safeguards Active</strong>
                                 Messages are dispatched sequentially with <strong>15–28s randomized human delay</strong>, typing presence simulation, and an automatic 3-minute breather every 20 messages.
                             </div>
                         </div>
@@ -550,13 +480,13 @@
                         <div class="row g-3 mb-3">
                             <!-- Campaign Title -->
                             <div class="col-12 col-md-6">
-                                <label class="form-label fw-semibold">Campaign Title</label>
+                                <label class="form-label fw-semibold small">Campaign Title</label>
                                 <input type="text" class="form-control" name="title" id="campaignTitle" placeholder="e.g. Festival Wishes, Service Reminders" required>
                             </div>
 
                             <!-- Target Audience -->
                             <div class="col-12 col-md-6">
-                                <label class="form-label fw-semibold">Target Audience</label>
+                                <label class="form-label fw-semibold small">Target Audience</label>
                                 <select class="form-select" name="target_filter" id="campaignAudienceSelect">
                                     <option value="all" {% if active_tab == 'all' or not active_tab %}selected{% endif %}>All Active Clients ({{ total_clients }})</option>
                                     <option value="credit_due" {% if active_tab == 'credit_due' %}selected{% endif %}>Credit Due Clients with Balance ({{ credit_due_clients_count }})</option>
@@ -569,36 +499,36 @@
                         <!-- Template Composer -->
                         <div class="mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-                                <label class="form-label fw-semibold mb-0">Message Template</label>
+                                <label class="form-label fw-semibold small mb-0">Message Template</label>
                                 
                                 <!-- Preset Templates Dropdown -->
                                 <div class="dropdown">
-                                    <button class="btn btn-sm btn-outline-primary dropdown-toggle shadow-sm" type="button" id="presetTemplatesDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="fas fa-file-alt me-1"></i>Preset Templates
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="presetTemplatesDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Preset Templates
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="presetTemplatesDropdown" style="z-index: 1060;">
                                         <li>
                                             <button type="button" class="dropdown-item preset-template-option text-start" data-template="{Hello|Hi|Dear} {{name}}, greetings from {{company}}! Just a reminder that your pending service balance is Rs {{balance}}. Kindly clear it at your convenience. Thank you!">
-                                                <i class="fas fa-rupee-sign text-danger me-2"></i><strong>Balance Due Reminder</strong>
-                                                <div class="small text-muted ps-4">Friendly reminder with pending amount</div>
+                                                <strong>Balance Due Reminder</strong>
+                                                <div class="small text-muted">Friendly reminder with pending amount</div>
                                             </button>
                                         </li>
                                         <li>
                                             <button type="button" class="dropdown-item preset-template-option text-start" data-template="{Hello|Hi} {{name}}! Greetings from {{company}}. Is your {{device}} running smoothly? Please visit us anytime for periodic maintenance or free checkup.">
-                                                <i class="fas fa-tools text-info me-2"></i><strong>Service & Maintenance Follow-up</strong>
-                                                <div class="small text-muted ps-4">Check up on serviced device</div>
+                                                <strong>Service &amp; Maintenance Follow-up</strong>
+                                                <div class="small text-muted">Check up on serviced device</div>
                                             </button>
                                         </li>
                                         <li>
-                                            <button type="button" class="dropdown-item preset-template-option text-start" data-template="{Hello|Greetings|Dear} {{name}}! Exclusive offer from {{company}}: Enjoy special discount on all repairs & accessories this week. Visit our store or reply to book!">
-                                                <i class="fas fa-gift text-warning me-2"></i><strong>Festival & Promotion Offer</strong>
-                                                <div class="small text-muted ps-4">Special discount & greetings</div>
+                                            <button type="button" class="dropdown-item preset-template-option text-start" data-template="{Hello|Greetings|Dear} {{name}}! Exclusive offer from {{company}}: Enjoy special discount on all repairs &amp; accessories this week. Visit our store or reply to book!">
+                                                <strong>Festival &amp; Promotion Offer</strong>
+                                                <div class="small text-muted">Special discount &amp; greetings</div>
                                             </button>
                                         </li>
                                         <li>
                                             <button type="button" class="dropdown-item preset-template-option text-start" data-template="{Dear|Hello} {{name}}, greetings from {{company}}! We are open Mon-Sat with high-speed turnaround times for all repairs and spares. Thank you for choosing us!">
-                                                <i class="fas fa-bullhorn text-primary me-2"></i><strong>Store Announcement</strong>
-                                                <div class="small text-muted ps-4">Working hours & service update</div>
+                                                <strong>Store Announcement</strong>
+                                                <div class="small text-muted">Working hours &amp; service update</div>
                                             </button>
                                         </li>
                                     </ul>
@@ -624,7 +554,7 @@ Example:
 Your pending balance is Rs {{balance}}. Please let us know if you need any assistance." required></textarea>
                             {% endverbatim %}
                             <div class="d-flex justify-content-between text-muted small mt-1">
-                                <span>💡 <em>Use <code>{choice1|choice2}</code> Spintax to randomize wordings and avoid spam filters.</em></span>
+                                <span><em>Use <code>{choice1|choice2}</code> Spintax to randomize wordings.</em></span>
                                 <span id="charCount">0 characters</span>
                             </div>
                         </div>
@@ -632,25 +562,25 @@ Your pending balance is Rs {{balance}}. Please let us know if you need any assis
                         <!-- Real-time Live Preview -->
                         <div class="mb-3">
                             <label class="form-label fw-semibold text-muted small text-uppercase mb-1">
-                                <i class="fas fa-eye me-1"></i>Live Preview for Sample Client (<span id="previewRecipientName">Customer</span>)
+                                Live Preview for Sample Client (<span id="previewRecipientName">Customer</span>)
                             </label>
-                            <div class="p-3 rounded-3 border bg-light font-monospace small" id="campaignPreviewBox" style="white-space: pre-wrap; min-height: 70px; background-color: #eef7f0 !important; border-color: #cde6d2 !important;">
+                            <div class="p-3 rounded-3 border bg-light font-monospace small" id="campaignPreviewBox" style="white-space: pre-wrap; min-height: 70px; background-color: #f8fafc !important; border-color: #e2e8f0 !important;">
                                 <em>Start typing a message above to see live preview...</em>
                             </div>
                         </div>
 
                         <!-- Dispatch Metrics Summary -->
-                        <div class="p-2 px-3 rounded bg-light border d-flex justify-content-between align-items-center small">
-                            <span><i class="fas fa-users text-primary me-1"></i>Recipients: <strong id="previewRecipientCount">{{ total_clients }}</strong></span>
-                            <span><i class="fas fa-clock text-warning me-1"></i>Est. Duration: <strong id="previewEstTime">~{{ total_clients|default:1 }} min</strong></span>
-                            <span><i class="fas fa-random text-info me-1"></i>Spintax: <strong id="previewSpintaxStatus">None</strong></span>
+                        <div class="p-2.5 px-3 rounded bg-light border d-flex justify-content-between align-items-center small">
+                            <span>Recipients: <strong id="previewRecipientCount">{{ total_clients }}</strong></span>
+                            <span>Est. Duration: <strong id="previewEstTime">~{{ total_clients|default:1 }} min</strong></span>
+                            <span>Spintax: <strong id="previewSpintaxStatus">None</strong></span>
                         </div>
                     </div>
 
-                    <div class="modal-footer bg-light py-2">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-success fw-bold px-4" id="launchBroadcastBtn">
-                            <i class="fab fa-whatsapp me-1"></i>Launch WhatsApp Broadcast
+                    <div class="modal-footer border-top bg-light py-2.5 px-4">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-sm btn-success px-3" id="launchBroadcastBtn">
+                            Launch WhatsApp Broadcast
                         </button>
                     </div>
                 </form>

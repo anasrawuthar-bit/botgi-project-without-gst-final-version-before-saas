@@ -1,13 +1,13 @@
 {% extends "job_tickets/base.html" %}
 
-{% block title %}Service Billing | GI Hostings{% endblock %}
+{% block title %}{{ app_name|default:"ZynDesk" }} | Service &amp; Ticket Management{% endblock %}
 
 {% block content %}
 <section class="section-container hero-shell">
     <div class="row align-items-center g-4">
         <div class="col-lg-7">
-            <span class="hero-kicker">Production-Ready Service Workflow</span>
-            <h1 class="hero-title mt-2">Service Billing for Job Ticket Management</h1>
+            <span class="hero-kicker">Powered by {{ platform.billing_author_name|default:"CoreZyn" }}</span>
+            <h1 class="hero-title mt-2">{{ app_name|default:"ZynDesk" }} - Service Billing &amp; Ticket Management</h1>
             <p class="hero-text">
                 Handle client intake, repair lifecycle, billing, and tracking in one workflow designed for real operations.
             </p>
@@ -34,15 +34,15 @@
         </div>
         <div class="col-lg-5">
             <div class="highlight-card">
-                <h5 class="mb-3">Support Contact</h5>
-                <p class="mb-2"><i class="fas fa-building me-2"></i>{{ company.company_name|default:"GI Hostings" }}</p>
-                <p class="mb-2"><i class="fas fa-phone me-2"></i>{{ company.phone1|default:"+919567227005" }}</p>
+                <h5 class="mb-3">Platform Support</h5>
+                <p class="mb-2"><i class="fas fa-building me-2"></i>{{ platform.billing_author_name|default:"CoreZyn" }}</p>
+                <p class="mb-2"><i class="fas fa-phone me-2"></i>{{ platform.support_phone|default:"+91 9567227005" }}</p>
                 <p class="mb-0">
                     <i class="fas fa-globe me-2"></i>
-                    {% if company.website %}
-                        <a href="{{ company.website }}" target="_blank" rel="noopener">{{ company.website }}</a>
+                    {% if platform.website %}
+                        <a href="{{ platform.website }}" target="_blank" rel="noopener">{{ platform.website }}</a>
                     {% else %}
-                        <a href="https://gihostings.com" target="_blank" rel="noopener">https://gihostings.com</a>
+                        <a href="https://corezyn.com" target="_blank" rel="noopener">https://corezyn.com</a>
                     {% endif %}
                 </p>
             </div>

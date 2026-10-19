@@ -239,7 +239,7 @@ class FinancialAccountsTestCase(TestCase):
         # 1. Reports Dashboard with Daybook Tab
         resp = self.client.get(reverse('reports_dashboard') + '?tab=daybook')
         self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, 'Daily Daybook &amp; Cash Drawer Reconciliation')
+        self.assertContains(resp, 'Daily Daybook &amp; Reconciliation')
         self.assertContains(resp, 'Physical Cash Drawer')
 
         # 2. Printable Daybook Report

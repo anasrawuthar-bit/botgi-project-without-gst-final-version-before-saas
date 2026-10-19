@@ -1,5 +1,7 @@
 import json
 import re
+from decimal import Decimal
+from django.db.models import Avg
 
 from .helpers import *  # noqa: F401,F403
 from .helpers import (
@@ -141,12 +143,82 @@ def technician_dashboard(request):
     calculate_job_totals(active_jobs, exclude_vendor_charges=True)
     calculate_job_totals(history_jobs, exclude_vendor_charges=True)
 
-    # 4. Calculate history summary totals (Footer totals)
+    # 4. Direct Stock Sales (Over-The-Counter Retail) attributed to this technician
+    workspace = getattr(request, 'current_workspace', None)
+    stock_qs = scope_to_workspace(
+        InventoryEntry.objects.filter(
+            entry_type__in=['sale', 'sale_return'],
+            job_ticket__isnull=True,
+            bill__is_reversed=False,
+        ).filter(
+            Q(created_by_id=technician.user_id) | Q(bill__created_by_id=technician.user_id)
+        ),
+        workspace,
+    ).select_related('bill', 'party', 'product').order_by('-entry_date', '-id')
+
+    if start_of_period and end_of_period:
+        stock_qs = stock_qs.filter(entry_date__gte=start_of_period.date(), entry_date__lt=end_of_period.date())
+
+    history_stock_sales = list(stock_qs)
+    history_stock_total = Decimal('0.00')
+    history_stock_units = 0
+
+    for entry in history_stock_sales:
+        amt = entry.total_amount or Decimal('0.00')
+        qty = entry.quantity or 0
+        if entry.entry_type == 'sale':
+            history_stock_total += amt
+            history_stock_units += qty
+        elif entry.entry_type == 'sale_return':
+            history_stock_total -= amt
+            history_stock_units -= qty
+
+    # Calculate history summary totals (Footer totals)
     history_parts_total = sum(j.part_total for j in history_jobs)
     history_service_total = sum(j.service_total for j in history_jobs)
     history_grand_total = history_parts_total + history_service_total
-    
-    # 5. Render context
+    history_combined_grand_total = history_grand_total + history_stock_total
+
+    # 5. Overall Technician Quality & Customer Feedback Metrics (Lifetime)
+    tech_feedback_qs = JobTicket.objects.filter(
+        assigned_to=technician,
+        feedback_rating__isnull=False
+    )
+    feedback_agg = tech_feedback_qs.aggregate(
+        total=Count('id'),
+        avg=Avg('feedback_rating')
+    )
+    feedback_count = feedback_agg['total'] or 0
+    avg_feedback_rating = feedback_agg['avg'] or 0
+    quality_score_pct = round(avg_feedback_rating * 10, 1) if avg_feedback_rating else 0
+    stars_rating = round(avg_feedback_rating / 2, 1) if avg_feedback_rating else 0
+
+    if avg_feedback_rating >= 9.0:
+        quality_grade = 'Excellent'
+        quality_badge_class = 'bg-success'
+    elif avg_feedback_rating >= 8.0:
+        quality_grade = 'Very Good'
+        quality_badge_class = 'bg-success'
+    elif avg_feedback_rating >= 6.5:
+        quality_grade = 'Good'
+        quality_badge_class = 'bg-info text-dark'
+    elif avg_feedback_rating >= 5.0:
+        quality_grade = 'Average'
+        quality_badge_class = 'bg-warning text-dark'
+    elif feedback_count > 0:
+        quality_grade = 'Needs Attention'
+        quality_badge_class = 'bg-danger'
+    else:
+        quality_grade = 'No Reviews Yet'
+        quality_badge_class = 'bg-secondary'
+
+    high_ratings_count = tech_feedback_qs.filter(feedback_rating__gte=8).count()
+    satisfaction_rate_pct = round((high_ratings_count / feedback_count) * 100) if feedback_count > 0 else 0
+    recent_reviews = list(
+        tech_feedback_qs.order_by('-feedback_date', '-updated_at')[:8]
+    )
+
+    # 6. Render context
     context = {
         'technician': technician,
         'active_jobs': active_jobs,
@@ -155,12 +227,26 @@ def technician_dashboard(request):
         'history_parts_total': history_parts_total,
         'history_service_total': history_service_total,
         'history_grand_total': history_grand_total,
-        
+        'history_stock_sales': history_stock_sales,
+        'history_stock_total': history_stock_total,
+        'history_stock_units': history_stock_units,
+        'history_combined_grand_total': history_combined_grand_total,
+
+        # Quality & Feedback metrics
+        'feedback_count': feedback_count,
+        'avg_feedback_rating': round(avg_feedback_rating, 1),
+        'quality_score_pct': quality_score_pct,
+        'stars_rating': stars_rating,
+        'quality_grade': quality_grade,
+        'quality_badge_class': quality_badge_class,
+        'satisfaction_rate_pct': satisfaction_rate_pct,
+        'recent_reviews': recent_reviews,
+
         # Search functionality
         'query': query,
         'search_results': search_results,
         'search_count': len(search_results) if query else 0,
-        
+
         # Dates for the filter inputs
         'current_year': current_year,
         'current_month': current_month,
@@ -173,16 +259,22 @@ def technician_dashboard(request):
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         # Return both history table and active jobs table for AJAX updates
         history_html = render_to_string('job_tickets/_history_table.html', context, request=request)
-        
+
         # Also render active jobs table rows
         active_jobs_html = render_to_string('job_tickets/_active_jobs_table.html', {
             'active_jobs': active_jobs,
             'request': request,
         }, request=request)
-        
+
         return JsonResponse({
             'html': history_html,
-            'active_jobs_html': active_jobs_html
+            'active_jobs_html': active_jobs_html,
+            'history_parts_total': f"{history_parts_total:.2f}",
+            'history_service_total': f"{history_service_total:.2f}",
+            'history_stock_total': f"{history_stock_total:.2f}",
+            'history_grand_total': f"{history_combined_grand_total:.2f}",
+            'history_jobs_count': len(history_jobs),
+            'history_stock_count': len(history_stock_sales),
         })
 
     return render(request, 'job_tickets/technician_dashboard.html', context)
@@ -1469,5 +1561,115 @@ def technician_logout_all_devices(request):
 
     messages.success(request, f'{count} mobile device(s) logged out successfully.')
     return redirect('technician_profile')
+
+
+@login_required
+def technician_feedback_view(request):
+    """Dedicated feedback and quality ratings page for technicians."""
+    if not request.user.groups.filter(name='Technicians').exists():
+        return redirect('unauthorized')
+
+    technician = TechnicianProfile.objects.filter(user=request.user).first()
+    if not technician:
+        return render(request, 'job_tickets/technician_feedback.html', {
+            'warning': 'No technician profile found. Contact admin.',
+            'reviews': [],
+            'feedback_count': 0,
+        })
+
+    base_qs = JobTicket.objects.filter(
+        assigned_to=technician,
+        feedback_rating__isnull=False
+    )
+
+    feedback_agg = base_qs.aggregate(
+        total=Count('id'),
+        avg=Avg('feedback_rating')
+    )
+    feedback_count = feedback_agg['total'] or 0
+    avg_feedback_rating = feedback_agg['avg'] or 0
+    quality_score_pct = round(avg_feedback_rating * 10, 1) if avg_feedback_rating else 0
+    stars_rating = round(avg_feedback_rating / 2, 1) if avg_feedback_rating else 0
+
+    if avg_feedback_rating >= 9.0:
+        quality_grade = 'Excellent'
+        quality_badge_class = 'bg-success'
+    elif avg_feedback_rating >= 8.0:
+        quality_grade = 'Very Good'
+        quality_badge_class = 'bg-success'
+    elif avg_feedback_rating >= 6.5:
+        quality_grade = 'Good'
+        quality_badge_class = 'bg-info text-dark'
+    elif avg_feedback_rating >= 5.0:
+        quality_grade = 'Average'
+        quality_badge_class = 'bg-warning text-dark'
+    elif feedback_count > 0:
+        quality_grade = 'Needs Attention'
+        quality_badge_class = 'bg-danger'
+    else:
+        quality_grade = 'No Reviews Yet'
+        quality_badge_class = 'bg-secondary'
+
+    high_ratings_count = base_qs.filter(feedback_rating__gte=8).count()
+    satisfaction_rate_pct = round((high_ratings_count / feedback_count) * 100) if feedback_count > 0 else 0
+
+    count_10 = base_qs.filter(feedback_rating=10).count()
+    count_high = base_qs.filter(feedback_rating__in=[8, 9]).count()
+    count_mid = base_qs.filter(feedback_rating__in=[6, 7]).count()
+    count_low = base_qs.filter(feedback_rating__lt=6).count()
+
+    reviews_qs = base_qs.order_by('-feedback_date', '-updated_at')
+
+    rating_filter = (request.GET.get('rating') or 'all').strip().lower()
+    if rating_filter == '10':
+        reviews_qs = reviews_qs.filter(feedback_rating=10)
+    elif rating_filter == 'high':
+        reviews_qs = reviews_qs.filter(feedback_rating__in=[8, 9])
+    elif rating_filter == 'mid':
+        reviews_qs = reviews_qs.filter(feedback_rating__in=[6, 7])
+    elif rating_filter == 'low':
+        reviews_qs = reviews_qs.filter(feedback_rating__lt=6)
+
+    query = (request.GET.get('q') or '').strip()
+    if query:
+        reviews_qs = reviews_qs.filter(
+            Q(job_code__icontains=query) |
+            Q(customer_name__icontains=query) |
+            Q(customer_phone__icontains=query) |
+            Q(device_type__icontains=query) |
+            Q(feedback_comment__icontains=query)
+        )
+
+    preset = (request.GET.get('preset') or '').strip().lower()
+    today = timezone.localdate()
+    if preset == 'this_month':
+        reviews_qs = reviews_qs.filter(feedback_date__year=today.year, feedback_date__month=today.month)
+    elif preset == 'last_month':
+        first_day_current = today.replace(day=1)
+        last_day_prev = first_day_current - timezone.timedelta(days=1)
+        reviews_qs = reviews_qs.filter(feedback_date__year=last_day_prev.year, feedback_date__month=last_day_prev.month)
+
+    context = {
+        'technician': technician,
+        'username': request.user.username,
+        'feedback_count': feedback_count,
+        'avg_feedback_rating': round(avg_feedback_rating, 1),
+        'quality_score_pct': quality_score_pct,
+        'stars_rating': stars_rating,
+        'quality_grade': quality_grade,
+        'quality_badge_class': quality_badge_class,
+        'satisfaction_rate_pct': satisfaction_rate_pct,
+        'high_ratings_count': high_ratings_count,
+        'count_10': count_10,
+        'count_high': count_high,
+        'count_mid': count_mid,
+        'count_low': count_low,
+        'reviews': reviews_qs,
+        'active_rating_filter': rating_filter,
+        'query': query,
+        'preset': preset,
+    }
+    return render(request, 'job_tickets/technician_feedback.html', context)
+
 
 

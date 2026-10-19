@@ -10,6 +10,7 @@ import '../theme/app_colors.dart';
 import '../widgets/app_surface_card.dart';
 import '../widgets/status_pill.dart';
 import 'client_management_screen.dart';
+import 'feedback_screen.dart';
 import 'job_detail_screen.dart';
 import 'pending_approvals_screen.dart';
 import 'product_management_screen.dart';
@@ -286,6 +287,18 @@ class _DashboardScreenState extends State<DashboardScreen> with AutomaticKeepAli
                       if (mounted) {
                         await _refresh();
                       }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  _TechnicianFeedbackCard(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => FeedbackScreen(
+                            managementService: widget.managementService,
+                          ),
+                        ),
+                      );
                     },
                   ),
                 ],
@@ -599,6 +612,69 @@ class _TechnicianAssignmentCard extends StatelessWidget {
                       fontSize: 12,
                       color: hasPending ? const Color(0xFF92400E) : Colors.grey.shade600,
                     ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TechnicianFeedbackCard extends StatelessWidget {
+  const _TechnicianFeedbackCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF3C7),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.star_rounded,
+                color: Color(0xFFD97706),
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Quality & Feedback',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'View customer reviews & satisfaction ratings',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
                 ],
               ),

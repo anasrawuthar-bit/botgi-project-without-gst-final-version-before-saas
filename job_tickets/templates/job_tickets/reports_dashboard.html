@@ -86,7 +86,7 @@
             
             <div class="row g-3">
                 <!-- Received -->
-                <div class="col-md-4">
+                <div class="col-sm-6 col-xl-3">
                     <div class="card h-100 shadow-sm border">
                         <div class="card-body p-3.5 d-flex flex-column justify-content-between">
                             <div>
@@ -106,7 +106,7 @@
                 </div>
 
                 <!-- Completed -->
-                <div class="col-md-4">
+                <div class="col-sm-6 col-xl-3">
                     <div class="card h-100 shadow-sm border">
                         <div class="card-body p-3.5 d-flex flex-column justify-content-between">
                             <div>
@@ -125,7 +125,7 @@
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center text-muted mt-1" style="font-size: 0.78rem;">
                                     <span>Parts: &#8377;{{ todays_completed_spare|floatformat:2 }}</span>
-                                    <span>Labor: &#8377;{{ todays_completed_service|floatformat:2 }}</span>
+                                    <span>Service Charge: &#8377;{{ todays_completed_service|floatformat:2 }}</span>
                                 </div>
                             </div>
                         </div>
@@ -133,7 +133,7 @@
                 </div>
 
                 <!-- Closed -->
-                <div class="col-md-4">
+                <div class="col-sm-6 col-xl-3">
                     <div class="card h-100 shadow-sm border">
                         <div class="card-body p-3.5 d-flex flex-column justify-content-between">
                             <div>
@@ -152,7 +152,39 @@
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center text-muted mt-1" style="font-size: 0.78rem;">
                                     <span>Parts: &#8377;{{ todays_closed_spare|floatformat:2 }}</span>
-                                    <span>Labor: &#8377;{{ todays_closed_service|floatformat:2 }}</span>
+                                    <span>Service Charge: &#8377;{{ todays_closed_service|floatformat:2 }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stock Sales -->
+                <div class="col-sm-6 col-xl-3">
+                    <div class="card h-100 shadow-sm border">
+                        <div class="card-body p-3.5 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="small text-muted fw-semibold text-uppercase" style="font-size: 0.75rem;">
+                                        Stock Sales
+                                        <button type="button" class="btn btn-link p-0 ms-1 text-muted border-0 text-decoration-none shadow-none align-baseline header-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-trigger="hover focus click" title="Direct over-the-counter retail inventory product sales made today outside repair tickets." aria-label="About Stock Sales">
+                                            <i class="fa-solid fa-circle-info text-success opacity-75"></i>
+                                        </button>
+                                    </span>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">Retail / OTC</span>
+                                </div>
+                                <a class="h2 fw-bold text-decoration-none text-dark d-block my-2" href="{% url 'inventory_sales_dashboard' %}?date_filter=custom&amp;start_date={{ today_date_str }}&amp;end_date={{ today_date_str }}">
+                                    {{ todays_stock_sales_count }}
+                                </a>
+                            </div>
+                            <div class="pt-2 border-top mt-2">
+                                <div class="d-flex justify-content-between align-items-center small text-muted">
+                                    <span>Total Sales:</span>
+                                    <strong class="text-success fs-6">&#8377;{{ todays_stock_total|floatformat:2 }}</strong>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center text-muted mt-1" style="font-size: 0.78rem;">
+                                    <span>Qty: {{ todays_stock_units }} unit{{ todays_stock_units|pluralize }}</span>
+                                    <span>Profit: &#8377;{{ todays_stock_profit|floatformat:2 }}</span>
                                 </div>
                             </div>
                         </div>
@@ -683,7 +715,18 @@
                             <tr>
                                 <th scope="col" class="ps-3">Technician</th>
                                 <th scope="col" class="text-end">Jobs</th>
-                                <th scope="col" class="text-end">Parts Sales</th>
+                                <th scope="col" class="text-end text-nowrap">
+                                    Parts Sales
+                                    <button type="button" class="btn btn-link p-0 ms-1 text-muted border-0 text-decoration-none shadow-none align-baseline header-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-trigger="hover focus click" title="Spare parts and components consumed and billed within repair job tickets." aria-label="About Parts Sales">
+                                        <i class="fa-solid fa-circle-info text-primary opacity-75"></i>
+                                    </button>
+                                </th>
+                                <th scope="col" class="text-end text-nowrap">
+                                    Stock Sales
+                                    <button type="button" class="btn btn-link p-0 ms-1 text-muted border-0 text-decoration-none shadow-none align-baseline header-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-trigger="hover focus click" title="Direct over-the-counter retail inventory product sales made by this staff member outside repair tickets." aria-label="About Stock Sales">
+                                        <i class="fa-solid fa-circle-info text-primary opacity-75"></i>
+                                    </button>
+                                </th>
                                 <th scope="col" class="text-end">Service Sales</th>
                                 <th scope="col" class="text-end">Total Sales</th>
                                 <th scope="col" class="text-end pe-3">Actions</th>
@@ -694,10 +737,14 @@
                             <tr>
                                 <th scope="row" class="ps-3 fw-medium text-dark">
                                     {{ tech.user.get_full_name|default:tech.user.username }}
+                                    {% if not tech.user.is_active %}
+                                    <span class="badge bg-secondary-subtle text-secondary border small ms-1" style="font-size: 0.7rem;">Disabled</span>
+                                    {% endif %}
                                     <span class="d-block small text-muted fw-normal">ID: {{ tech.unique_id }}</span>
                                 </th>
                                 <td class="text-end fw-semibold text-dark">{{ tech.jobs_done }}</td>
                                 <td class="text-end text-muted">&#8377;{{ tech.monthly_parts_sales|floatformat:2 }}</td>
+                                <td class="text-end text-muted">&#8377;{{ tech.monthly_stock_sales|floatformat:2 }}</td>
                                 <td class="text-end text-muted">&#8377;{{ tech.monthly_service_sales|floatformat:2 }}</td>
                                 <td class="text-end fw-bold text-dark">&#8377;{{ tech.monthly_total_sales|floatformat:2 }}</td>
                                 <td class="text-end pe-3">
@@ -713,7 +760,7 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="6" class="text-center text-muted py-4">No technicians available in this workspace.</td>
+                                <td colspan="7" class="text-center text-muted py-4">No technicians available in this workspace.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -723,6 +770,7 @@
                                 <th scope="row" class="ps-3">Total</th>
                                 <td class="text-end">{{ tech_total_jobs }}</td>
                                 <td class="text-end text-muted">&#8377;{{ tech_total_parts_sales|floatformat:2 }}</td>
+                                <td class="text-end text-muted">&#8377;{{ tech_total_stock_sales|floatformat:2 }}</td>
                                 <td class="text-end text-muted">&#8377;{{ tech_total_service_sales|floatformat:2 }}</td>
                                 <td class="text-end fw-bold text-dark">&#8377;{{ tech_total_combined_sales|floatformat:2 }}</td>
                                 <td class="pe-3"></td>

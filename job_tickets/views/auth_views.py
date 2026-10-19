@@ -31,6 +31,9 @@ def login_view(request):
     elif logout_reason == 'session_expired':
         logout_notice = 'Your session expired due to inactivity. Please log in again.'
         logout_notice_level = 'secondary'
+    elif logout_reason == 'account_disabled':
+        logout_notice = 'This user account is disabled. Please contact your administrator.'
+        logout_notice_level = 'danger'
 
     if request.user.is_authenticated:
         permitted_next_url = _get_permitted_next_url(request.user, next_url)
@@ -56,6 +59,15 @@ def login_view(request):
 
         user = authenticate(request, username=username, password=password)
         if user is not None:
+            if not user.is_active:
+                return render(request, 'job_tickets/login.html', {
+                    'error': 'This user account is disabled. Please contact your administrator.',
+                    'is_disabled': True,
+                    'username': username,
+                    'next': next_url,
+                    'logout_notice': logout_notice,
+                    'logout_notice_level': logout_notice_level,
+                })
             cache.delete(cache_key)
             login(request, user)
             request.session.set_expiry(settings.SESSION_IDLE_TIMEOUT_SECONDS)
@@ -63,6 +75,18 @@ def login_view(request):
             if permitted_next_url:
                 return redirect(permitted_next_url)
             return _get_post_login_redirect(user)
+
+        # Check if the account exists and is disabled
+        candidate_user = User.objects.filter(username__iexact=username).first()
+        if candidate_user and not candidate_user.is_active:
+            return render(request, 'job_tickets/login.html', {
+                'error': 'This user account is disabled. Please contact your administrator.',
+                'is_disabled': True,
+                'username': username,
+                'next': next_url,
+                'logout_notice': logout_notice,
+                'logout_notice_level': logout_notice_level,
+            })
 
         cache.set(cache_key, attempts + 1, 900)
         return render(request, 'job_tickets/login.html', {

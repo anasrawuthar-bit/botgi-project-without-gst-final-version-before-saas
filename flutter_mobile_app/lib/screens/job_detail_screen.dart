@@ -634,8 +634,6 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                 const SizedBox(height: 12),
                 _buildFeedbackCard(detail),
               ],
-              const SizedBox(height: 12),
-              _buildTimelineCard(detail),
             ],
           ),
         ),
@@ -2121,32 +2119,6 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
     );
   }
 
-  Widget _buildTimelineCard(JobDetail detail) {
-    return AppSurfaceCard(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Status Timeline',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-          const SizedBox(height: 12),
-          if (detail.timeline.isEmpty)
-            const Text('No timeline entries.')
-          else
-            ...List.generate(detail.timeline.length, (index) {
-              final item = detail.timeline[index];
-              final isLast = index == detail.timeline.length - 1;
-              return _TimelineItem(event: item, isLast: isLast);
-            }),
-        ],
-      ),
-    );
-  }
-
   Widget _buildStickyActionBar(JobDetail detail) {
     final actions = detail.availableActions;
     if (actions.isEmpty) {
@@ -2285,82 +2257,6 @@ class _FinanceRow extends StatelessWidget {
           Text('Rs $value', style: style),
         ],
       ),
-    );
-  }
-}
-
-class _TimelineItem extends StatelessWidget {
-  const _TimelineItem({required this.event, required this.isLast});
-
-  final JobTimelineEvent event;
-  final bool isLast;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 24,
-          child: Column(
-            children: [
-              Container(
-                width: 10,
-                height: 10,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              if (!isLast)
-                Container(
-                  width: 2,
-                  height: 52,
-                  margin: const EdgeInsets.only(top: 2),
-                  color: const Color(0xFFD2DCE9),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFE5EAF1)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    event.label,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${event.timestamp} • ${event.user}',
-                    style: const TextStyle(fontSize: 11, color: AppColors.ink500),
-                  ),
-                  if (event.details.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      event.details,
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

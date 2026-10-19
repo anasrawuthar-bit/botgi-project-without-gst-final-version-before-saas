@@ -4,14 +4,16 @@ import os
 from channels.auth import AuthMiddlewareStack # For session/user support in WebSockets
 from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
-# IMPORT YOUR APP'S ROUTING FILE HERE
-from job_tickets import routing 
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'botgi_crm.settings')
 from botgi_crm import django_compat  # noqa: F401
 
 # Initialize Django ASGI application early to ensure the AppRegistry is populated
 django_asgi_app = get_asgi_application()
+
+# Import routing after Django ASGI app is initialized
+from job_tickets import routing
+
 
 application = ProtocolTypeRouter({
     # HTTP requests will be handled by the default Django ASGI application.

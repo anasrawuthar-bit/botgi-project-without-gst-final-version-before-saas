@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Service Billing | GI Hostings{% endblock %}</title>
+    <title>{% block title %}ZynDesk | Service &amp; Ticket Management{% endblock %}</title>
     <script>
         (function () {
             try {
@@ -37,15 +37,9 @@
     </script>
     <link rel="stylesheet" href="{% static 'css/style.css' %}?v=3.5">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    {% if company.display_logo_url %}
-    <link rel="icon" type="image/png" href="{{ company.display_logo_url }}">
-    <link rel="shortcut icon" type="image/png" href="{{ company.display_logo_url }}">
-    <link rel="apple-touch-icon" href="{{ company.display_logo_url }}">
-    {% else %}
-    <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
-    <link rel="shortcut icon" type="image/png" href="{% static 'img/logo.png' %}">
-    <link rel="apple-touch-icon" href="{% static 'img/logo.png' %}">
-    {% endif %}
+    <link rel="icon" type="image/png" href="{{ app_logo_url|default:'/static/img/logo.png' }}">
+    <link rel="shortcut icon" type="image/png" href="{{ app_logo_url|default:'/static/img/logo.png' }}">
+    <link rel="apple-touch-icon" href="{{ app_logo_url|default:'/static/img/logo.png' }}">
     {% block extra_css %}{% endblock %}
 
     <style>
@@ -192,12 +186,8 @@
             <i class="fa-solid fa-bars"></i>
         </button>
         <a class="sidebar-topbar-brand" href="{% url 'home' %}">
-            {% if company.display_logo_url %}
-                <img src="{{ company.display_logo_url }}" alt="{{ company.company_name|default:'Company' }} Logo" class="brand-logo" onerror="this.onerror=null; this.src='/static/img/logo.png';">
-            {% else %}
-                <img src="/static/img/logo.png" alt="Software Logo" class="brand-logo">
-            {% endif %}
-            <strong>{{ company.company_name|default:"GI Hostings" }}</strong>
+            <img src="{{ app_logo_url|default:'/static/img/logo.png' }}" onerror="this.onerror=null; this.src='/static/img/logo.png';" alt="{{ app_name|default:'ZynDesk' }} Logo" class="brand-logo">
+            <strong>{{ app_name|default:"ZynDesk" }}</strong>
         </a>
         <button type="button" class="btn btn-sm btn-outline-secondary ms-auto d-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#supportHelpModal" title="Help & Support" aria-label="Help and Support">
             <i class="fa-solid fa-headset fs-6 text-primary"></i>
@@ -211,20 +201,14 @@
     <aside class="app-sidebar" id="appSidebar">
         <div class="sidebar-brand">
             <div class="sidebar-brand-head">
-                <a href="{% url 'home' %}" class="sidebar-brand-link" data-tooltip="{{ company.company_name|default:'GI Hostings' }}">
-                    {% if company.display_logo_url %}
-                        <img src="{{ company.display_logo_url }}" alt="{{ company.company_name|default:'Company' }} Logo" class="sidebar-brand-logo" onerror="this.onerror=null; this.src='/static/img/logo.png';">
-                    {% else %}
-                        <img src="/static/img/logo.png" alt="Software Logo" class="sidebar-brand-logo">
-                    {% endif %}
+                <a href="{% url 'home' %}" class="sidebar-brand-link" data-tooltip="{{ app_name|default:'ZynDesk' }}">
+                    <img src="{{ app_logo_url|default:'/static/img/logo.png' }}" onerror="this.onerror=null; this.src='/static/img/logo.png';" alt="{{ app_name|default:'ZynDesk' }} Logo" class="sidebar-brand-logo">
                     <span class="sidebar-brand-copy">
-                        <strong>{{ company.company_name|default:"GI Hostings" }}</strong>
-                        {% if request.resolver_match.url_name|slice:":10" == "inventory_" or request.resolver_match.url_name == "product_dashboard" %}
-                        <small>Inventory Control</small>
-                        {% elif request.resolver_match.url_name == "company_profile_settings" %}
-                        <small>System Settings</small>
+                        <strong>{{ app_name|default:"ZynDesk" }}</strong>
+                        {% if company.company_name %}
+                        <small>{{ company.company_name }}</small>
                         {% else %}
-                        <small>{{ company.tagline|default:"Service Billing" }}</small>
+                        <small>Service &amp; Billing</small>
                         {% endif %}
                     </span>
                 </a>
@@ -481,6 +465,12 @@
                         <i class="fa-solid fa-list-check"></i><span class="sidebar-link-label">Tasks</span>
                     </a>
                 </li>
+                <li>
+                    <a class="sidebar-link {% if request.resolver_match.url_name == 'technician_feedback' %}active{% endif %}"
+                        href="{% url 'technician_feedback' %}" data-tooltip="Feedback">
+                        <i class="fa-solid fa-star"></i><span class="sidebar-link-label">Feedback</span>
+                    </a>
+                </li>
                 {% endif %}
             </ul>
         </nav>
@@ -500,7 +490,7 @@
                     <span class="user-avatar">{{ user|user_initials }}</span>
                     <div class="user-info">
                         <span class="user-name">{{ user.get_full_name|default:user.username }}</span>
-                        <span class="user-org">{{ company.company_name|default:"gi hostings" }}</span>
+                        <span class="user-org">{{ company.company_name|default:"My Organization" }}</span>
                     </div>
                     <i class="fa-solid fa-chevron-up user-caret"></i>
                 </button>
@@ -512,7 +502,7 @@
                     <div class="user-menu-section organizations-box">
                         <div class="user-menu-label">Organizations</div>
                         <div class="user-menu-org-item active">
-                            <span class="org-name">{{ company.company_name|default:"gi hostings" }}</span>
+                            <span class="org-name">{{ company.company_name|default:"My Organization" }}</span>
                             <i class="fa-solid fa-check text-success ms-auto"></i>
                         </div>
                     </div>
@@ -547,14 +537,10 @@
     <nav class="guest-topbar">
         <div class="guest-topbar-inner">
             <a class="guest-topbar-brand" href="{% url 'home' %}">
-                {% if company.display_logo_url %}
-                    <img src="{{ company.display_logo_url }}" alt="{{ company.company_name|default:'Company' }} Logo" class="brand-logo" onerror="this.onerror=null; this.src='/static/img/logo.png';">
-                {% else %}
-                    <img src="/static/img/logo.png" alt="Software Logo" class="brand-logo">
-                {% endif %}
+                <img src="{{ app_logo_url|default:'/static/img/logo.png' }}" onerror="this.onerror=null; this.src='/static/img/logo.png';" alt="{{ app_name|default:'ZynDesk' }} Logo" class="brand-logo">
                 <span class="brand-copy">
-                    <strong>{{ company.company_name|default:"GI Hostings" }}</strong>
-                    <small>{{ company.tagline|default:"Service Billing" }}</small>
+                    <strong>{{ app_name|default:"ZynDesk" }}</strong>
+                    <small>by {{ platform.billing_author_name|default:"CoreZyn" }}</small>
                 </span>
             </a>
             <div class="guest-topbar-actions">
@@ -584,7 +570,7 @@
         {% if not user.is_authenticated %}
         <footer class="site-footer">
             <div class="container d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
-                <p class="mb-0 fw-semibold">Service Billing by {{ platform.billing_author_name|default:"GI HOSTINGS" }}
+                <p class="mb-0 fw-semibold">{{ app_name|default:"ZynDesk" }} platform by {{ platform.billing_author_name|default:"CoreZyn" }}
                 </p>
                 <p class="mb-0">
                     Support:
@@ -595,7 +581,7 @@
                     {% if platform.website %}
                     | <a href="{{ platform.website }}" target="_blank" rel="noopener">{{ platform.website }}</a>
                     {% else %}
-                    | <a href="https://gihostings.com" target="_blank" rel="noopener">https://gihostings.com</a>
+                    | <a href="https://corezyn.com" target="_blank" rel="noopener">https://corezyn.com</a>
                     {% endif %}
                 </p>
             </div>
@@ -1213,10 +1199,10 @@
                                 </div>
                                 <div>
                                     <div class="fw-semibold text-dark">Official Portal</div>
-                                    <div class="small text-muted">{{ platform.website|default:"https://gihostings.com" }}</div>
+                                    <div class="small text-muted">{{ platform.website|default:"https://corezyn.com" }}</div>
                                 </div>
                             </div>
-                            <a href="{{ platform.website|default:'https://gihostings.com' }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary px-3">
+                            <a href="{{ platform.website|default:'https://corezyn.com' }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary px-3">
                                 <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Visit
                             </a>
                         </div>
@@ -1224,7 +1210,7 @@
                 </div>
                 <div class="modal-footer bg-light py-2 px-4 d-flex justify-content-between align-items-center">
                     <span class="small text-muted">
-                        Service Billing platform by <strong class="text-dark">{{ platform.billing_author_name|default:"GI HOSTINGS" }}</strong>
+                        {{ app_name|default:"ZynDesk" }} platform by <strong class="text-dark">{{ platform.billing_author_name|default:"CoreZyn" }}</strong>
                     </span>
                     <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">Close</button>
                 </div>

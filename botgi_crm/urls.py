@@ -12,12 +12,23 @@ urlpatterns = [
 
 # Serve static and media files
 if settings.DEBUG:
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    if settings.STATIC_ROOT.exists():
+        urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 else:
     urlpatterns += [
         path('media/<path:path>', static_serve, {'document_root': settings.MEDIA_ROOT}),
     ]
+    # Fallback to serve static files if WhiteNoise does not catch them
+    _static_dir = (
+        settings.STATIC_ROOT
+        if (settings.STATIC_ROOT and settings.STATIC_ROOT.exists())
+        else (settings.BASE_DIR / 'job_tickets' / 'static')
+    )
+    urlpatterns += [
+        path('static/<path:path>', static_serve, {'document_root': _static_dir}),
+    ]
+
 
 # Error handlers (only work when DEBUG=False)
 if not settings.DEBUG:

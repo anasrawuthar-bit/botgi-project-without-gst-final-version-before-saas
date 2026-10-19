@@ -162,6 +162,11 @@
     .financial-report .row {
         break-inside: avoid;
     }
+
+    #financial-table-container,
+    #monthly-table-container {
+        display: block !important;
+    }
 }
 </style>
 {% endblock %}
@@ -271,39 +276,155 @@
         </div>
     </div>
 
-    <!-- 1. TOPLINE EXECUTIVE FINANCIAL PULSE -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <div class="metric-card">
-                <p class="label">Total Net Revenue</p>
-                <p class="value text-dark">&#8377;{{ overall_revenue|floatformat:2 }}</p>
-                <p class="note">
-                    Parts &amp; Stock: &#8377;{{ total_closed_spare_revenue|floatformat:2 }} + Service: &#8377;{{ total_closed_service_revenue|floatformat:2 }}
-                </p>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="metric-card">
-                <p class="label">Direct Job Costs (COGS)</p>
-                <p class="value text-danger">&#8377;{{ overall_expense|floatformat:2 }}</p>
-                <p class="note">Parts inventory COGS + vendor payables</p>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="metric-card">
-                <p class="label">Shop Overhead Expenses</p>
-                <p class="value text-warning">&#8377;{{ period_overhead_expenses|default:"0.00"|floatformat:2 }}</p>
-                <p class="note">Shop rent, electricity &amp; operational costs</p>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="metric-card metric-emerald">
-                <div class="d-flex justify-content-between align-items-start">
-                    <p class="label text-success">True Net Operating Profit</p>
-                    <span class="badge bg-success">{{ overall_margin|floatformat:1 }}% Margin</span>
+    <!-- 1. EXECUTIVE FINANCIAL CATEGORIES & CLOSED JOB SUMMARY (MERGED GRAPH & TABLE) -->
+    <div class="card-box mb-4 shadow-sm" style="border-radius: 16px; border: 1px solid #e2e8f0; background: #ffffff;">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pb-3 mb-3 border-bottom">
+            <div class="d-flex align-items-center gap-2.5">
+                <div class="p-2 rounded-3 bg-primary-subtle text-primary d-inline-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <i class="fas fa-sack-dollar fs-5"></i>
                 </div>
-                <p class="value">&#8377;{{ period_net_profit|floatformat:2 }}</p>
-                <p class="note text-success">Net profit after all direct &amp; shop overheads</p>
+                <div>
+                    <h2 class="h5 fw-bold mb-0 text-dark" style="letter-spacing: -0.01em;">Financial Category Breakdown &amp; Summary</h2>
+                    <p class="text-muted small mb-0">Smooth animated analysis and itemized breakdown across every revenue stream, inventory cost, shop overhead, and bottom-line profit.</p>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2 no-print flex-wrap">
+                <!-- Mode Switcher Pills for Graph -->
+                <div class="d-flex align-items-center gap-1.5 flex-wrap" id="financialChartToggles">
+                    <button type="button" class="btn btn-sm btn-primary active px-2.5 py-1.5 fw-semibold d-inline-flex align-items-center gap-1" data-chart-mode="all">
+                        <i class="fas fa-layer-group"></i> <span>All Categories</span>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-2.5 py-1.5 fw-semibold d-inline-flex align-items-center gap-1" data-chart-mode="revenue">
+                        <i class="fas fa-arrow-trend-up text-success"></i> <span>Revenue Streams</span>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-2.5 py-1.5 fw-semibold d-inline-flex align-items-center gap-1" data-chart-mode="costs">
+                        <i class="fas fa-arrow-trend-down text-danger"></i> <span>Costs &amp; Overheads</span>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-2.5 py-1.5 fw-semibold d-inline-flex align-items-center gap-1" data-chart-mode="summary">
+                        <i class="fas fa-scale-balanced text-primary"></i> <span>Executive Flow</span>
+                    </button>
+                </div>
+
+                <!-- View Switcher: Both / Graph View / Table View -->
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-primary active py-1 px-2.5 fw-semibold" id="btn-financial-view-both" onclick="setFinancialView('both')">
+                        Both
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary py-1 px-2.5 fw-semibold" id="btn-financial-view-graph" onclick="setFinancialView('graph')">
+                        Graph View
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary py-1 px-2.5 fw-semibold" id="btn-financial-view-table" onclick="setFinancialView('table')">
+                        Table View
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Indicator Badges -->
+        <div id="financial-badges-container" class="d-flex align-items-center gap-2 flex-wrap mb-3 p-2.5 rounded-3 border no-print" style="font-size: 0.8rem; background-color: #f8fafc; border-color: #e2e8f0 !important;">
+            <div class="d-flex align-items-center gap-1.5 me-2">
+                <span class="rounded-circle d-inline-block" style="width: 10px; height: 10px; background-color: #10b981;"></span>
+                <span class="text-secondary">Revenue Inflows:</span>
+                <strong class="text-dark">&#8377;{{ overall_revenue|floatformat:2 }}</strong>
+            </div>
+            <div class="d-flex align-items-center gap-1.5 me-2">
+                <span class="rounded-circle d-inline-block" style="width: 10px; height: 10px; background-color: #ef4444;"></span>
+                <span class="text-secondary">Direct Costs (COGS):</span>
+                <strong class="text-danger">&#8377;{{ overall_expense|floatformat:2 }}</strong>
+            </div>
+            <div class="d-flex align-items-center gap-1.5 me-2">
+                <span class="rounded-circle d-inline-block" style="width: 10px; height: 10px; background-color: #f59e0b;"></span>
+                <span class="text-secondary">Shop Overhead:</span>
+                <strong class="text-warning">&#8377;{{ period_overhead_expenses|default:"0.00"|floatformat:2 }}</strong>
+            </div>
+            <div class="d-flex align-items-center gap-1.5 ms-auto">
+                <span class="rounded-circle d-inline-block" style="width: 10px; height: 10px; background-color: #059669;"></span>
+                <span class="text-secondary">True Net Profit:</span>
+                <strong class="text-success">&#8377;{{ period_net_profit|floatformat:2 }} ({{ overall_margin|floatformat:1 }}% Margin)</strong>
+            </div>
+        </div>
+
+        <!-- Financial Animated Chart Container -->
+        <div id="financial-chart-container" class="mb-3 no-print">
+            <div class="position-relative" style="min-height: 380px;">
+                <canvas id="financialCategoriesChart" style="max-height: 420px; width: 100%;"></canvas>
+                <div id="financialCategoriesChartEmpty" class="text-center py-5 d-none text-muted">
+                    <i class="fas fa-chart-bar fs-2 mb-2 d-block text-secondary"></i>
+                    No financial transactions found for this selected period.
+                </div>
+            </div>
+        </div>
+
+        <hr class="my-3 text-secondary opacity-25 no-print" id="financial-view-divider">
+
+        <!-- Financial Summary Table Container -->
+        <div id="financial-table-container">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Block</th>
+                            <th>Basis</th>
+                            <th class="text-end">Revenue</th>
+                            <th class="text-end">Expense (COGS)</th>
+                            <th class="text-end">Profit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for block in closed_financial_blocks %}
+                        <tr>
+                            <td><strong>{{ block.label }}</strong></td>
+                            <td class="text-muted small">{{ block.note }}</td>
+                            <td class="text-end {% if block.is_discount %}text-danger{% elif not block.revenue %}text-muted{% endif %}">
+                                {% if block.is_discount and block.revenue_abs %}
+                                    - &#8377;{{ block.revenue_abs|floatformat:2 }}
+                                {% elif block.revenue %}
+                                    &#8377;{{ block.revenue|floatformat:2 }}
+                                {% else %}
+                                    &mdash;
+                                {% endif %}
+                            </td>
+                            <td class="text-end text-muted">
+                                {% if block.is_discount or not block.expense %}
+                                    &mdash;
+                                {% else %}
+                                    &#8377;{{ block.expense|floatformat:2 }}
+                                {% endif %}
+                            </td>
+                            <td class="text-end {% if block.is_discount %}text-danger{% elif not block.profit %}text-muted{% endif %}">
+                                {% if block.is_discount and block.profit_abs %}
+                                    - &#8377;{{ block.profit_abs|floatformat:2 }}
+                                {% elif block.profit %}
+                                    &#8377;{{ block.profit|floatformat:2 }}
+                                {% else %}
+                                    &mdash;
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        <tr>
+                            <td><strong>Operating Expenses</strong></td>
+                            <td class="text-muted small">Shop overheads (Rent, electricity, utilities, daily bills)</td>
+                            <td class="text-end text-muted">&mdash;</td>
+                            <td class="text-end {% if period_overhead_expenses > 0 %}text-danger fw-semibold{% else %}text-muted{% endif %}">&#8377;{{ period_overhead_expenses|default:"0.00"|floatformat:2 }}</td>
+                            <td class="text-end {% if period_overhead_expenses > 0 %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+                                {% if period_overhead_expenses > 0 %}- &#8377;{{ period_overhead_expenses|floatformat:2 }}{% else %}&#8377;0.00{% endif %}
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr class="fw-bold table-light border-top border-2">
+                            <td colspan="2">
+                                Totals ({{ jobs_closed_count }} Closed Jobs{% if direct_stock_sales_count %} + {{ direct_stock_sales_count }} Retail Sales{% endif %})
+                                <span class="badge bg-success ms-1" style="font-size: 0.72rem;">{{ overall_margin|floatformat:1 }}% Margin</span>
+                            </td>
+                            <td class="text-end text-dark">&#8377;{{ overall_revenue|floatformat:2 }}</td>
+                            <td class="text-end text-danger">&#8377;{{ period_total_expenses|default:overall_expense|floatformat:2 }}</td>
+                            <td class="text-end text-success fs-6">&#8377;{{ period_net_profit|floatformat:2 }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
         </div>
     </div>
@@ -561,96 +682,80 @@
     </div>
     {% endif %}
 
-    <!-- 5. DETAILED CLOSED JOB FINANCIAL SUMMARY TABLE -->
-    <div class="card-box mb-4">
-        <div class="section-title-line">
-            <i class="fas fa-sack-dollar text-primary"></i>
-            <h2>Closed Job Financial Summary</h2>
-        </div>
-        <p class="text-muted small mb-3">
-            Itemized breakdown of parts, labor, stock sales, vendor outsourced services, and discounts for the {{ jobs_closed_count }} jobs closed in this period.
-        </p>
-
-        <div class="table-responsive">
-            <table class="table table-striped table-hover align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Block</th>
-                        <th>Basis</th>
-                        <th class="text-end">Revenue</th>
-                        <th class="text-end">Expense (COGS)</th>
-                        <th class="text-end">Profit</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for block in closed_financial_blocks %}
-                    <tr>
-                        <td><strong>{{ block.label }}</strong></td>
-                        <td class="text-muted small">{{ block.note }}</td>
-                        <td class="text-end {% if block.is_discount %}text-danger{% elif not block.revenue %}text-muted{% endif %}">
-                            {% if block.is_discount and block.revenue_abs %}
-                                - &#8377;{{ block.revenue_abs|floatformat:2 }}
-                            {% elif block.revenue %}
-                                &#8377;{{ block.revenue|floatformat:2 }}
-                            {% else %}
-                                &mdash;
-                            {% endif %}
-                        </td>
-                        <td class="text-end text-muted">
-                            {% if block.is_discount or not block.expense %}
-                                &mdash;
-                            {% else %}
-                                &#8377;{{ block.expense|floatformat:2 }}
-                            {% endif %}
-                        </td>
-                        <td class="text-end {% if block.is_discount %}text-danger{% elif not block.profit %}text-muted{% endif %}">
-                            {% if block.is_discount and block.profit_abs %}
-                                - &#8377;{{ block.profit_abs|floatformat:2 }}
-                            {% elif block.profit %}
-                                &#8377;{{ block.profit|floatformat:2 }}
-                            {% else %}
-                                &mdash;
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                    <tr>
-                        <td><strong>Operating Expenses</strong></td>
-                        <td class="text-muted small">Shop overheads (Rent, electricity, utilities, daily bills)</td>
-                        <td class="text-end text-muted">&mdash;</td>
-                        <td class="text-end {% if period_overhead_expenses > 0 %}text-danger fw-semibold{% else %}text-muted{% endif %}">&#8377;{{ period_overhead_expenses|default:"0.00"|floatformat:2 }}</td>
-                        <td class="text-end {% if period_overhead_expenses > 0 %}text-danger fw-semibold{% else %}text-muted{% endif %}">
-                            {% if period_overhead_expenses > 0 %}- &#8377;{{ period_overhead_expenses|floatformat:2 }}{% else %}&#8377;0.00{% endif %}
-                        </td>
-                    </tr>
-                </tbody>
-                <tfoot>
-                    <tr class="fw-bold table-light border-top border-2">
-                        <td colspan="2">
-                            Totals ({{ jobs_closed_count }} Closed Jobs{% if direct_stock_sales_count %} + {{ direct_stock_sales_count }} Retail Sales{% endif %})
-                            <span class="badge bg-success ms-1" style="font-size: 0.72rem;">{{ overall_margin|floatformat:1 }}% Margin</span>
-                        </td>
-                        <td class="text-end text-dark">&#8377;{{ overall_revenue|floatformat:2 }}</td>
-                        <td class="text-end text-danger">&#8377;{{ period_total_expenses|default:overall_expense|floatformat:2 }}</td>
-                        <td class="text-end text-success fs-6">&#8377;{{ period_net_profit|floatformat:2 }}</td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
-    </div>
-
     <!-- 6. MONTHLY CLOSED & READY FOR PICKUP BREAKDOWN -->
     <div class="card-box mb-4">
-        <div class="section-title-line">
-            <i class="fas fa-calendar-check text-primary"></i>
-            <h2>Monthly Closed &amp; Ready for Pickup Breakdown</h2>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pb-2 mb-3 border-bottom">
+            <div class="section-title-line mb-0">
+                <i class="fas fa-calendar-check text-primary"></i>
+                <h2>Monthly Closed &amp; Ready for Pickup Breakdown</h2>
+            </div>
+            <div class="d-flex align-items-center gap-2 no-print flex-wrap">
+                <!-- Working Year Filter -->
+                {% if working_years|length <= 4 %}
+                <div class="btn-group btn-group-sm" id="monthlyYearFilterGroup" role="group" aria-label="Working Year Filter">
+                    <button type="button" class="btn {% if selected_breakdown_year == 'all' %}btn-primary active{% else %}btn-outline-secondary{% endif %} py-1 px-2.5 fw-semibold" data-year="all" onclick="setMonthlyYearFilter('all')">
+                        <i class="fas fa-calendar-days me-1"></i>All Time
+                    </button>
+                    {% for yr in working_years %}
+                    <button type="button" class="btn {% if selected_breakdown_year == yr %}btn-primary active{% else %}btn-outline-secondary{% endif %} py-1 px-2.5 fw-semibold" data-year="{{ yr }}" onclick="setMonthlyYearFilter('{{ yr }}')">
+                        {{ yr }}
+                    </button>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="d-inline-flex align-items-center gap-1.5 bg-white rounded border px-2 py-0.5 shadow-xs">
+                    <i class="fas fa-calendar-alt text-primary small"></i>
+                    <select id="monthlyYearFilterSelect" class="form-select form-select-sm border-0 py-1 ps-1 pe-4 fw-semibold text-dark" style="font-size: 0.82rem; background-position: right 0.25rem center; cursor: pointer;" onchange="setMonthlyYearFilter(this.value)" aria-label="Filter by Working Year">
+                        <option value="all" {% if selected_breakdown_year == 'all' %}selected{% endif %}>All Time</option>
+                        {% for yr in working_years %}
+                        <option value="{{ yr }}" {% if selected_breakdown_year == yr %}selected{% endif %}>{{ yr }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <!-- Mode Toggles for Monthly Graph -->
+                <div class="btn-group btn-group-sm" id="monthlyChartModeToggles" role="group">
+                    <button type="button" class="btn btn-outline-primary active py-1 px-2.5" data-monthly-mode="all">
+                        <i class="fas fa-chart-line me-1"></i>All Metrics
+                    </button>
+                    <button type="button" class="btn btn-outline-primary py-1 px-2.5" data-monthly-mode="parts_service">
+                        <i class="fas fa-screwdriver-wrench me-1"></i>Parts &amp; Service
+                    </button>
+                    <button type="button" class="btn btn-outline-primary py-1 px-2.5" data-monthly-mode="volume">
+                        <i class="fas fa-boxes-stacked me-1"></i>Job Volume
+                    </button>
+                </div>
+                <!-- View Switcher: Graph / Table / Both -->
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-primary active py-1 px-2.5" id="btn-monthly-view-both" onclick="setMonthlyView('both')">
+                        Both
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary py-1 px-2.5" id="btn-monthly-view-graph" onclick="setMonthlyView('graph')">
+                        Graph Only
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary py-1 px-2.5" id="btn-monthly-view-table" onclick="setMonthlyView('table')">
+                        Table Only
+                    </button>
+                </div>
+            </div>
         </div>
         <p class="text-muted small mb-3">
-            All-time month-by-month breakdown of closed jobs, linked credit bills, outstanding balance, and ready for pickup jobs (months with zero values hidden).
+            All-time month-by-month breakdown of closed jobs, parts &amp; service revenue, credit bills, outstanding balance, and ready for pickup jobs (months with zero values hidden).
         </p>
 
-        <div class="table-responsive">
-            <table class="table table-striped table-hover align-middle mb-0">
+        <!-- Monthly Animated Chart Container -->
+        <div id="monthly-chart-container" class="mb-4">
+            <div class="p-3 rounded-3 border bg-light-subtle shadow-xs" style="background-color: #f8fafc; border-color: #e2e8f0 !important;">
+                <div class="position-relative" style="min-height: 280px; max-height: 340px;">
+                    <canvas id="monthlyBreakdownChart" style="max-height: 320px; width: 100%;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Breakdown Table Container -->
+        <div id="monthly-table-container" class="table-responsive">
+            <table class="table table-striped table-hover align-middle mb-0" id="monthly-breakdown-table">
                 <thead class="table-light">
                     <tr>
                         <th scope="col">Month</th>
@@ -661,9 +766,15 @@
                         <th scope="col" class="text-end">Ready for Pickup Value</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="monthly-table-tbody">
                     {% for row in monthly_breakdown %}
-                    <tr>
+                    <tr class="monthly-data-row"
+                        data-year="{{ row.month_key|slice:':4' }}"
+                        data-closed-count="{{ row.closed_count }}"
+                        data-credit-bills="{{ row.credit_bills|stringformat:'.2f' }}"
+                        data-outstanding-balance="{{ row.outstanding_balance|stringformat:'.2f' }}"
+                        data-ready-count="{{ row.ready_count }}"
+                        data-ready-value="{{ row.ready_value|stringformat:'.2f' }}">
                         <th scope="row" class="fw-semibold text-dark">{{ row.month_label }}</th>
                         <td class="text-end">{{ row.closed_count }}</td>
                         <td class="text-end text-dark">&#8377;{{ row.credit_bills|floatformat:2 }}</td>
@@ -672,20 +783,23 @@
                         <td class="text-end text-primary fw-semibold">&#8377;{{ row.ready_value|floatformat:2 }}</td>
                     </tr>
                     {% empty %}
-                    <tr>
+                    <tr id="monthly-table-empty">
                         <td colspan="6" class="text-center text-muted py-4">No closed or ready for pickup jobs recorded yet.</td>
                     </tr>
                     {% endfor %}
+                    <tr id="monthly-table-filtered-empty" class="d-none">
+                        <td colspan="6" class="text-center text-muted py-4">No activity found for the selected year.</td>
+                    </tr>
                 </tbody>
                 {% if monthly_breakdown %}
-                <tfoot class="table-group-divider fw-bold">
+                <tfoot class="table-group-divider fw-bold" id="monthly-table-tfoot">
                     <tr class="table-light">
-                        <th scope="row">Total</th>
-                        <td class="text-end">{{ monthly_breakdown_totals.closed_count }}</td>
-                        <td class="text-end text-dark">&#8377;{{ monthly_breakdown_totals.credit_bills|floatformat:2 }}</td>
-                        <td class="text-end {% if monthly_breakdown_totals.outstanding_balance > 0 %}text-danger{% else %}text-muted{% endif %}">&#8377;{{ monthly_breakdown_totals.outstanding_balance|floatformat:2 }}</td>
-                        <td class="text-end">{{ monthly_breakdown_totals.ready_count }}</td>
-                        <td class="text-end text-primary">&#8377;{{ monthly_breakdown_totals.ready_value|floatformat:2 }}</td>
+                        <th scope="row" id="monthly-total-label">Total</th>
+                        <td class="text-end" id="monthly-total-closed-count">{{ monthly_breakdown_totals.closed_count }}</td>
+                        <td class="text-end text-dark" id="monthly-total-credit-bills">&#8377;{{ monthly_breakdown_totals.credit_bills|floatformat:2 }}</td>
+                        <td class="text-end {% if monthly_breakdown_totals.outstanding_balance > 0 %}text-danger{% else %}text-muted{% endif %}" id="monthly-total-outstanding">&#8377;{{ monthly_breakdown_totals.outstanding_balance|floatformat:2 }}</td>
+                        <td class="text-end" id="monthly-total-ready-count">{{ monthly_breakdown_totals.ready_count }}</td>
+                        <td class="text-end text-primary" id="monthly-total-ready-value">&#8377;{{ monthly_breakdown_totals.ready_value|floatformat:2 }}</td>
                     </tr>
                 </tfoot>
                 {% endif %}
@@ -760,4 +874,687 @@
 
 {% block extra_js %}
 {% include "job_tickets/includes/print_flow_script.html" %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+<script id="financial-categories-data" type="application/json">{{ financial_streams_chart_json|safe|default:"{}" }}</script>
+<script id="monthly-chart-data" type="application/json">{{ monthly_chart_json|safe|default:"{}" }}</script>
+
+<script>
+let financialCategoriesChartInstance = null;
+let monthlyBreakdownChartInstance = null;
+
+// View switcher for Financial Breakdown section
+function setFinancialView(mode) {
+    const chartContainer = document.getElementById('financial-chart-container');
+    const tableContainer = document.getElementById('financial-table-container');
+    const badgesContainer = document.getElementById('financial-badges-container');
+    const chartToggles = document.getElementById('financialChartToggles');
+    const divider = document.getElementById('financial-view-divider');
+    const btnBoth = document.getElementById('btn-financial-view-both');
+    const btnGraph = document.getElementById('btn-financial-view-graph');
+    const btnTable = document.getElementById('btn-financial-view-table');
+
+    if (!chartContainer || !tableContainer) return;
+
+    if (btnBoth) btnBoth.className = 'btn btn-outline-secondary py-1 px-2.5 fw-semibold';
+    if (btnGraph) btnGraph.className = 'btn btn-outline-secondary py-1 px-2.5 fw-semibold';
+    if (btnTable) btnTable.className = 'btn btn-outline-secondary py-1 px-2.5 fw-semibold';
+
+    if (mode === 'graph') {
+        chartContainer.classList.remove('d-none');
+        tableContainer.classList.add('d-none');
+        if (badgesContainer) badgesContainer.classList.remove('d-none');
+        if (chartToggles) chartToggles.classList.remove('d-none');
+        if (divider) divider.classList.add('d-none');
+        if (btnGraph) btnGraph.className = 'btn btn-primary active py-1 px-2.5 fw-semibold';
+        if (financialCategoriesChartInstance) financialCategoriesChartInstance.resize();
+    } else if (mode === 'table') {
+        chartContainer.classList.add('d-none');
+        tableContainer.classList.remove('d-none');
+        if (badgesContainer) badgesContainer.classList.add('d-none');
+        if (chartToggles) chartToggles.classList.add('d-none');
+        if (divider) divider.classList.add('d-none');
+        if (btnTable) btnTable.className = 'btn btn-primary active py-1 px-2.5 fw-semibold';
+    } else {
+        // Both
+        chartContainer.classList.remove('d-none');
+        tableContainer.classList.remove('d-none');
+        if (badgesContainer) badgesContainer.classList.remove('d-none');
+        if (chartToggles) chartToggles.classList.remove('d-none');
+        if (divider) divider.classList.remove('d-none');
+        if (btnBoth) btnBoth.className = 'btn btn-primary active py-1 px-2.5 fw-semibold';
+        if (financialCategoriesChartInstance) financialCategoriesChartInstance.resize();
+    }
+}
+
+// View switcher for Monthly Breakdown section
+function setMonthlyView(mode) {
+    const chartContainer = document.getElementById('monthly-chart-container');
+    const tableContainer = document.getElementById('monthly-table-container');
+    const btnBoth = document.getElementById('btn-monthly-view-both');
+    const btnGraph = document.getElementById('btn-monthly-view-graph');
+    const btnTable = document.getElementById('btn-monthly-view-table');
+
+    if (!chartContainer || !tableContainer) return;
+
+    if (btnBoth) btnBoth.className = 'btn btn-outline-secondary py-1 px-2.5';
+    if (btnGraph) btnGraph.className = 'btn btn-outline-secondary py-1 px-2.5';
+    if (btnTable) btnTable.className = 'btn btn-outline-secondary py-1 px-2.5';
+
+    if (mode === 'graph') {
+        chartContainer.classList.remove('d-none');
+        tableContainer.classList.add('d-none');
+        if (btnGraph) btnGraph.className = 'btn btn-primary active py-1 px-2.5';
+        if (monthlyBreakdownChartInstance) monthlyBreakdownChartInstance.resize();
+    } else if (mode === 'table') {
+        chartContainer.classList.add('d-none');
+        tableContainer.classList.remove('d-none');
+        if (btnTable) btnTable.className = 'btn btn-primary active py-1 px-2.5';
+    } else {
+        // Both
+        chartContainer.classList.remove('d-none');
+        tableContainer.classList.remove('d-none');
+        if (btnBoth) btnBoth.className = 'btn btn-primary active py-1 px-2.5';
+        if (monthlyBreakdownChartInstance) monthlyBreakdownChartInstance.resize();
+    }
+}
+
+// Working Year filter state & functions for Monthly Breakdown section
+let currentMonthlyYear = '{{ selected_breakdown_year|default:"all" }}';
+let currentMonthlyMode = 'all';
+let updateMonthlyChart = function() {};
+
+function formatCurrencyINR(val) {
+    return '₹' + Number(val || 0).toLocaleString('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+function updateMonthlyTable(year) {
+    const rows = document.querySelectorAll('.monthly-data-row');
+    const emptyFilteredRow = document.getElementById('monthly-table-filtered-empty');
+    const tfoot = document.getElementById('monthly-table-tfoot');
+    const totalLabel = document.getElementById('monthly-total-label');
+    const totalClosedCount = document.getElementById('monthly-total-closed-count');
+    const totalCreditBills = document.getElementById('monthly-total-credit-bills');
+    const totalOutstanding = document.getElementById('monthly-total-outstanding');
+    const totalReadyCount = document.getElementById('monthly-total-ready-count');
+    const totalReadyValue = document.getElementById('monthly-total-ready-value');
+
+    let visibleCount = 0;
+    let sumClosed = 0;
+    let sumCredit = 0;
+    let sumOutstanding = 0;
+    let sumReadyCount = 0;
+    let sumReadyValue = 0;
+
+    rows.forEach(row => {
+        const rowYear = row.getAttribute('data-year');
+        if (year === 'all' || rowYear === year) {
+            row.classList.remove('d-none');
+            visibleCount++;
+            sumClosed += parseInt(row.getAttribute('data-closed-count') || '0', 10);
+            sumCredit += parseFloat(row.getAttribute('data-credit-bills') || '0');
+            sumOutstanding += parseFloat(row.getAttribute('data-outstanding-balance') || '0');
+            sumReadyCount += parseInt(row.getAttribute('data-ready-count') || '0', 10);
+            sumReadyValue += parseFloat(row.getAttribute('data-ready-value') || '0');
+        } else {
+            row.classList.add('d-none');
+        }
+    });
+
+    if (emptyFilteredRow) {
+        if (visibleCount === 0 && rows.length > 0) {
+            emptyFilteredRow.classList.remove('d-none');
+        } else {
+            emptyFilteredRow.classList.add('d-none');
+        }
+    }
+
+    if (tfoot) {
+        if (totalLabel) {
+            totalLabel.textContent = (year === 'all') ? 'Total' : `Total (${year})`;
+        }
+        if (totalClosedCount) totalClosedCount.textContent = sumClosed;
+        if (totalCreditBills) totalCreditBills.textContent = formatCurrencyINR(sumCredit);
+        if (totalOutstanding) {
+            totalOutstanding.textContent = formatCurrencyINR(sumOutstanding);
+            if (sumOutstanding > 0) {
+                totalOutstanding.className = 'text-end text-danger fw-semibold';
+            } else {
+                totalOutstanding.className = 'text-end text-muted';
+            }
+        }
+        if (totalReadyCount) totalReadyCount.textContent = sumReadyCount;
+        if (totalReadyValue) totalReadyValue.textContent = formatCurrencyINR(sumReadyValue);
+    }
+}
+
+function setMonthlyYearFilter(year) {
+    currentMonthlyYear = String(year);
+
+    // Update buttons in button group if present
+    const groupBtns = document.querySelectorAll('#monthlyYearFilterGroup button');
+    groupBtns.forEach(btn => {
+        if (btn.getAttribute('data-year') === currentMonthlyYear) {
+            btn.className = 'btn btn-primary active py-1 px-2.5 fw-semibold';
+        } else {
+            btn.className = 'btn btn-outline-secondary py-1 px-2.5 fw-semibold';
+        }
+    });
+
+    // Update select dropdown if present
+    const select = document.getElementById('monthlyYearFilterSelect');
+    if (select && select.value !== currentMonthlyYear) {
+        select.value = currentMonthlyYear;
+    }
+
+    // Update URL query parameter without page reload
+    try {
+        const url = new URL(window.location);
+        if (currentMonthlyYear === 'all') {
+            url.searchParams.delete('breakdown_year');
+        } else {
+            url.searchParams.set('breakdown_year', currentMonthlyYear);
+        }
+        window.history.replaceState({}, '', url);
+    } catch(e) {}
+
+    // Update table rows & footers
+    updateMonthlyTable(currentMonthlyYear);
+
+    // Update chart
+    updateMonthlyChart();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // ==========================================
+    // 1. EXECUTIVE FINANCIAL CATEGORIES CHART
+    // ==========================================
+    const catCanvas = document.getElementById('financialCategoriesChart');
+    const rawCatDataEl = document.getElementById('financial-categories-data');
+
+    if (catCanvas && typeof Chart !== 'undefined') {
+        let catData = {};
+        try {
+            catData = JSON.parse(rawCatDataEl?.textContent || '{}');
+        } catch(e) {
+            catData = {};
+        }
+
+        const formatINR = (val) => '₹' + Math.abs(Number(val) || 0).toLocaleString('en-IN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+
+        // Datasets definition for each category
+        function getCategoryChartConfig(mode) {
+            let labels = [];
+            let values = [];
+            let bgColors = [];
+            let borderColors = [];
+            let types = [];
+
+            if (mode === 'revenue') {
+                labels = [
+                    'Service Parts Revenue',
+                    'Service Labor (Service Charges)',
+                    'Stock & Retail Sales',
+                    'Vendor Outsourced Services'
+                ];
+                values = [
+                    Number(catData.service_parts || 0),
+                    Number(catData.service_labor || 0),
+                    Number(catData.stock_sales || 0),
+                    Number(catData.vendor_revenue || 0)
+                ];
+                bgColors = [
+                    'rgba(16, 185, 129, 0.85)',
+                    'rgba(14, 165, 233, 0.85)',
+                    'rgba(99, 102, 241, 0.85)',
+                    'rgba(245, 158, 11, 0.85)'
+                ];
+                borderColors = ['#059669', '#0284c7', '#4f46e5', '#d97706'];
+                types = [
+                    'Revenue Inflow (Parts used in closed repairs)',
+                    'Revenue Inflow (Technician service charges)',
+                    'Revenue Inflow (Direct product & inventory sales)',
+                    'Revenue Inflow (Vendor services billed to clients)'
+                ];
+            } else if (mode === 'costs') {
+                labels = [
+                    'Parts Inventory COGS',
+                    'Vendor Outsourced Payables',
+                    'Shop Overhead Expenses',
+                    'Customer Discounts Conceded'
+                ];
+                values = [
+                    Number(catData.stock_cogs || 0),
+                    Number(catData.vendor_expense || 0),
+                    Number(catData.overhead_expenses || 0),
+                    Number(catData.discounts || 0)
+                ];
+                bgColors = [
+                    'rgba(249, 115, 22, 0.85)',
+                    'rgba(180, 83, 9, 0.85)',
+                    'rgba(239, 68, 68, 0.85)',
+                    'rgba(244, 63, 94, 0.85)'
+                ];
+                borderColors = ['#ea580c', '#92400e', '#dc2626', '#e11d48'];
+                types = [
+                    'Direct Cost Outflow (Parts cost basis / COGS)',
+                    'Direct Cost Outflow (External vendor cost)',
+                    'Operating Outflow (Shop rent, utilities & bills)',
+                    'Revenue Deduction (Discounts granted to customers)'
+                ];
+            } else if (mode === 'summary') {
+                labels = [
+                    'Total Net Revenue',
+                    'Direct Job Costs (COGS)',
+                    'Shop Overhead Expenses',
+                    'True Net Operating Profit'
+                ];
+                values = [
+                    Number(catData.total_net_revenue || 0),
+                    Number(catData.total_cogs || 0),
+                    Number(catData.overhead_expenses || 0),
+                    Number(catData.net_profit || 0)
+                ];
+                bgColors = [
+                    'rgba(14, 165, 233, 0.85)',
+                    'rgba(239, 68, 68, 0.85)',
+                    'rgba(245, 158, 11, 0.85)',
+                    'rgba(16, 185, 129, 0.95)'
+                ];
+                borderColors = ['#0284c7', '#dc2626', '#d97706', '#059669'];
+                types = [
+                    'Topline Realized Revenue',
+                    'Direct COGS & Vendor Payables',
+                    'Operational Overhead Expenses',
+                    'Net Bottom-line Profitability'
+                ];
+            } else {
+                // ALL CATEGORIES
+                labels = [
+                    'Service Parts Revenue',
+                    'Service Labor (Charges)',
+                    'Stock & Retail Sales',
+                    'Vendor Outsourced Revenue',
+                    'Parts Inventory COGS',
+                    'Vendor Payables (Cost)',
+                    'Customer Discounts',
+                    'Shop Overhead Expenses',
+                    'True Net Operating Profit'
+                ];
+                values = [
+                    Number(catData.service_parts || 0),
+                    Number(catData.service_labor || 0),
+                    Number(catData.stock_sales || 0),
+                    Number(catData.vendor_revenue || 0),
+                    Number(catData.stock_cogs || 0),
+                    Number(catData.vendor_expense || 0),
+                    Number(catData.discounts || 0),
+                    Number(catData.overhead_expenses || 0),
+                    Number(catData.net_profit || 0)
+                ];
+                bgColors = [
+                    'rgba(16, 185, 129, 0.85)',  // Emerald
+                    'rgba(14, 165, 233, 0.85)',  // Sky Blue
+                    'rgba(99, 102, 241, 0.85)',  // Indigo
+                    'rgba(245, 158, 11, 0.85)',  // Amber
+                    'rgba(249, 115, 22, 0.85)',  // Orange
+                    'rgba(180, 83, 9, 0.85)',   // Brown
+                    'rgba(244, 63, 94, 0.85)',   // Rose
+                    'rgba(239, 68, 68, 0.85)',   // Red
+                    'rgba(5, 150, 105, 0.95)'    // Deep Emerald (Profit)
+                ];
+                borderColors = [
+                    '#059669',
+                    '#0284c7',
+                    '#4f46e5',
+                    '#d97706',
+                    '#ea580c',
+                    '#92400e',
+                    '#e11d48',
+                    '#dc2626',
+                    '#047857'
+                ];
+                types = [
+                    'Revenue Inflow (Parts used in closed repairs)',
+                    'Revenue Inflow (Technician labor & service charges)',
+                    'Revenue Inflow (Direct product & inventory sales)',
+                    'Revenue Inflow (Vendor services billed to clients)',
+                    'Direct Cost Outflow (Parts acquisition cost)',
+                    'Direct Cost Outflow (Outsourced vendor fee)',
+                    'Revenue Deduction (Customer discounts)',
+                    'Operating Outflow (Shop rent, bills & overhead)',
+                    'Bottom-line Net Profit'
+                ];
+            }
+
+            return {
+                labels: labels,
+                datasets: [{
+                    label: 'Amount (₹)',
+                    data: values,
+                    backgroundColor: bgColors,
+                    borderColor: borderColors,
+                    borderWidth: 1.5,
+                    borderRadius: 7,
+                    borderSkipped: false,
+                    maxBarThickness: 28,
+                    barPercentage: 0.68,
+                    categoryPercentage: 0.82
+                }],
+                types: types
+            };
+        }
+
+        const initialConfig = getCategoryChartConfig('all');
+        const ctx = catCanvas.getContext('2d');
+
+        financialCategoriesChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: initialConfig.labels,
+                datasets: initialConfig.datasets
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 1000,
+                    easing: 'easeOutQuart'
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        titleFont: { size: 13, weight: 'bold', family: "'Space Grotesk', system-ui, sans-serif" },
+                        bodyFont: { size: 12, family: "'Plus Jakarta Sans', system-ui, sans-serif" },
+                        padding: 12,
+                        cornerRadius: 8,
+                        boxPadding: 4,
+                        callbacks: {
+                            label: function(context) {
+                                const val = context.raw || 0;
+                                const currentTypes = financialCategoriesChartInstance?._currentTypes || initialConfig.types;
+                                const type = currentTypes[context.dataIndex] || '';
+                                return [
+                                    ` Amount: ${formatINR(val)}`,
+                                    ` Category Type: ${type}`
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(226, 232, 240, 0.7)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            font: { family: "'Space Grotesk', system-ui, sans-serif", size: 11 },
+                            callback: function(value) {
+                                return '₹' + Number(value).toLocaleString('en-IN');
+                            }
+                        }
+                    },
+                    y: {
+                        grid: { display: false, drawBorder: false },
+                        ticks: {
+                            font: { family: "'Plus Jakarta Sans', system-ui, sans-serif", weight: '600', size: 12 },
+                            color: '#1e293b'
+                        }
+                    }
+                }
+            }
+        });
+        financialCategoriesChartInstance._currentTypes = initialConfig.types;
+
+        // Mode switch listener
+        const catToggles = document.querySelectorAll('#financialChartToggles button');
+        catToggles.forEach(btn => {
+            btn.addEventListener('click', function() {
+                catToggles.forEach(b => {
+                    b.classList.remove('btn-primary', 'active');
+                    b.classList.add('btn-outline-secondary');
+                });
+                this.classList.remove('btn-outline-secondary');
+                this.classList.add('btn-primary', 'active');
+
+                const mode = this.getAttribute('data-chart-mode');
+                const newConf = getCategoryChartConfig(mode);
+                financialCategoriesChartInstance.data.labels = newConf.labels;
+                financialCategoriesChartInstance.data.datasets = newConf.datasets;
+                financialCategoriesChartInstance._currentTypes = newConf.types;
+                financialCategoriesChartInstance.update();
+            });
+        });
+    }
+
+
+    // ==========================================
+    // 2. MONTHLY BREAKDOWN HISTORICAL CHART
+    // ==========================================
+    const monthCanvas = document.getElementById('monthlyBreakdownChart');
+    const rawMonthDataEl = document.getElementById('monthly-chart-data');
+
+    if (monthCanvas && typeof Chart !== 'undefined') {
+        let monthData = {};
+        try {
+            monthData = JSON.parse(rawMonthDataEl?.textContent || '{}');
+        } catch(e) {
+            monthData = {};
+        }
+
+        const allLabels = monthData.labels || [];
+        const allYears = monthData.years || [];
+
+        if (allLabels.length > 0) {
+            const mCtx = monthCanvas.getContext('2d');
+
+            function getIndicesForYear(year) {
+                const indices = [];
+                for (let i = 0; i < allLabels.length; i++) {
+                    if (year === 'all' || allYears[i] === year) {
+                        indices.push(i);
+                    }
+                }
+                return indices;
+            }
+
+            function getMonthlyDatasets(mode, indices) {
+                const pick = (arr) => indices ? indices.map(i => (arr || [])[i]) : (arr || []);
+
+                if (mode === 'parts_service') {
+                    return [
+                        {
+                            type: 'bar',
+                            label: 'Parts Value (₹)',
+                            data: pick(monthData.parts_value),
+                            backgroundColor: 'rgba(16, 185, 129, 0.85)',
+                            borderColor: '#059669',
+                            borderWidth: 1.5,
+                            borderRadius: 6,
+                            maxBarThickness: 48,
+                            stack: 'revenue'
+                        },
+                        {
+                            type: 'bar',
+                            label: 'Service Charges (₹)',
+                            data: pick(monthData.service_value),
+                            backgroundColor: 'rgba(14, 165, 233, 0.85)',
+                            borderColor: '#0284c7',
+                            borderWidth: 1.5,
+                            borderRadius: 6,
+                            maxBarThickness: 48,
+                            stack: 'revenue'
+                        }
+                    ];
+                } else if (mode === 'volume') {
+                    return [
+                        {
+                            type: 'bar',
+                            label: 'Closed Jobs Count',
+                            data: pick(monthData.closed_count),
+                            backgroundColor: 'rgba(15, 23, 42, 0.85)',
+                            borderColor: '#0f172a',
+                            borderWidth: 1.5,
+                            borderRadius: 6,
+                            maxBarThickness: 48
+                        },
+                        {
+                            type: 'bar',
+                            label: 'Ready for Pickup Count',
+                            data: pick(monthData.ready_count),
+                            backgroundColor: 'rgba(2, 132, 199, 0.85)',
+                            borderColor: '#0284c7',
+                            borderWidth: 1.5,
+                            borderRadius: 6,
+                            maxBarThickness: 48
+                        }
+                    ];
+                } else {
+                    // ALL METRICS
+                    return [
+                        {
+                            type: 'bar',
+                            label: 'Closed Realized Value (₹)',
+                            data: pick(monthData.closed_value),
+                            backgroundColor: 'rgba(37, 99, 235, 0.85)',
+                            borderColor: '#1d4ed8',
+                            borderWidth: 1.5,
+                            borderRadius: 6,
+                            maxBarThickness: 48,
+                            order: 2
+                        },
+                        {
+                            type: 'bar',
+                            label: 'Ready for Pickup Value (₹)',
+                            data: pick(monthData.ready_value),
+                            backgroundColor: 'rgba(16, 185, 129, 0.85)',
+                            borderColor: '#059669',
+                            borderWidth: 1.5,
+                            borderRadius: 6,
+                            maxBarThickness: 48,
+                            order: 3
+                        },
+                        {
+                            type: 'line',
+                            label: 'Credit Outstanding Balance (₹)',
+                            data: pick(monthData.outstanding_balance),
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            borderWidth: 2.5,
+                            pointBackgroundColor: '#ef4444',
+                            pointRadius: 4,
+                            tension: 0.35,
+                            order: 1
+                        }
+                    ];
+                }
+            }
+
+            const initialIndices = getIndicesForYear(currentMonthlyYear);
+            const initialLabels = initialIndices.map(i => allLabels[i]);
+
+            monthlyBreakdownChartInstance = new Chart(mCtx, {
+                data: {
+                    labels: initialLabels,
+                    datasets: getMonthlyDatasets(currentMonthlyMode, initialIndices)
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 900,
+                        easing: 'easeOutQuart'
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: { family: "'Plus Jakarta Sans', system-ui, sans-serif", size: 12, weight: '600' },
+                                boxWidth: 14,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#0f172a',
+                            titleFont: { size: 13, weight: 'bold', family: "'Space Grotesk', system-ui, sans-serif" },
+                            bodyFont: { size: 12, family: "'Plus Jakarta Sans', system-ui, sans-serif" },
+                            padding: 10,
+                            cornerRadius: 6,
+                            callbacks: {
+                                label: function(context) {
+                                    const val = context.raw || 0;
+                                    const isCount = context.dataset.label.includes('Count');
+                                    if (isCount) {
+                                        return ` ${context.dataset.label}: ${val} jobs`;
+                                    }
+                                    return ` ${context.dataset.label}: ₹${Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false, drawBorder: false },
+                            ticks: {
+                                font: { family: "'Space Grotesk', system-ui, sans-serif", size: 11, weight: '600' },
+                                color: '#334155'
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(226, 232, 240, 0.7)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                font: { family: "'Space Grotesk', system-ui, sans-serif", size: 11 },
+                                callback: function(value) {
+                                    return '₹' + Number(value).toLocaleString('en-IN');
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            updateMonthlyChart = function() {
+                if (!monthlyBreakdownChartInstance) return;
+                const indices = getIndicesForYear(currentMonthlyYear);
+                monthlyBreakdownChartInstance.data.labels = indices.map(i => allLabels[i]);
+                monthlyBreakdownChartInstance.data.datasets = getMonthlyDatasets(currentMonthlyMode, indices);
+                monthlyBreakdownChartInstance.update();
+            };
+
+            // Monthly mode toggles
+            const monthlyModeBtns = document.querySelectorAll('#monthlyChartModeToggles button');
+            monthlyModeBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    monthlyModeBtns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    currentMonthlyMode = this.getAttribute('data-monthly-mode') || 'all';
+                    updateMonthlyChart();
+                });
+            });
+
+            // Initialize table filter if a specific year was preselected via URL
+            if (currentMonthlyYear !== 'all') {
+                updateMonthlyTable(currentMonthlyYear);
+            }
+        } else {
+            const chartShell = document.getElementById('monthly-chart-container');
+            if (chartShell) chartShell.classList.add('d-none');
+        }
+    }
+});
+</script>
 {% endblock %}

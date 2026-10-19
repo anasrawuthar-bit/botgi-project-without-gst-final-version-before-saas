@@ -76,6 +76,7 @@ urlpatterns = [
 
     # Technician-facing views
     path('technician-dashboard/', views.technician_dashboard, name='technician_dashboard'),
+    path('technician-feedback/', views.technician_feedback_view, name='technician_feedback'),
     path('technician-dashboard/<str:job_code>/', views.job_detail_technician, name='job_detail_technician'),
     path('technician/job/<str:job_code>/', views.job_detail_technician, name='technician_job_detail_alias'),
     path('technician/profile/', views.technician_profile, name='technician_profile'),
@@ -201,6 +202,7 @@ urlpatterns = [
 
     # Standalone Task Management (Mobile API)
     path('api/mobile/technicians/', views.mobile_api_technicians, name='mobile_api_technicians'),
+    path('api/mobile/technician/feedback/', views.mobile_api_technician_feedback, name='mobile_api_technician_feedback'),
     path('api/mobile/tasks/', views.mobile_api_tasks, name='mobile_api_tasks'),
     path('api/mobile/tasks/<int:task_id>/', views.mobile_api_task_detail, name='mobile_api_task_detail'),
     path('api/mobile/tasks/<int:task_id>/accept/', views.mobile_api_task_accept, name='mobile_api_task_accept'),

@@ -66,8 +66,8 @@
                         <!-- Top Section Header & Quick Save Bar -->
                         <div class="settings-top-banner d-flex justify-content-between align-items-center flex-wrap gap-2 pb-3 mb-4 border-bottom">
                             <div>
-                                <h4 id="settings-section-title" class="fw-bold text-dark mb-1">Company Information</h4>
-                                <p id="settings-section-subtitle" class="text-muted small mb-0">Business profile branding, logo assets, and primary organization details.</p>
+                                <h4 id="settings-section-title" class="fw-bold text-dark mb-1">Company Profile (Invoices &amp; Bills)</h4>
+                                <p id="settings-section-subtitle" class="text-muted small mb-0">Your business details, tagline, and logo used on printed customer invoices, repair receipts, and billing documents.</p>
                             </div>
                             <div class="d-flex align-items-center gap-2">
                                 <button type="submit" class="btn btn-primary px-3.5 py-1.5 fw-semibold shadow-sm" id="top-quick-save-btn">
@@ -83,20 +83,22 @@
                                     <div class="tab-pane fade show active" id="company-info" role="tabpanel" aria-labelledby="tab-company-info" tabindex="0">
                                         <div class="row">
                                             <div class="col-md-6 mb-3">
-                                                <label class="form-label">Company Name *</label>
+                                                <label class="form-label">Business / Company Name (Printed on Invoices &amp; Bills) *</label>
                                                 {{ form.company_name }}
+                                                <small class="form-text text-muted">This company name will appear on printed customer invoices, receipts, and bills.</small>
                                             </div>
                                             <div class="col-md-6 mb-3">
-                                                <label class="form-label">Tagline</label>
+                                                <label class="form-label">Tagline (Printed on Invoices &amp; Bills)</label>
                                                 {{ form.tagline }}
+                                                <small class="form-text text-muted">Printed under your business name on customer bills.</small>
                                             </div>
                                         </div>
                                         <div class="row">
                                             <div class="col-md-12 mb-3">
-                                                <label class="form-label">Logo URL</label>
+                                                <label class="form-label">Invoice &amp; Bill Logo URL</label>
                                                 {{ form.logo_url }}
                                                 <small class="form-text text-muted">
-                                                    Upload your logo to an image hosting service (ImageKit, Imgur) and paste the URL here
+                                                    Upload your business logo to an image host (or paste direct URL) to display on customer invoices and receipts.
                                                 </small>
                                                 {% if profile.logo_url %}
                                                 <div class="mt-2">
@@ -222,38 +224,23 @@
                                         <div class="row g-3 mb-4">
                                             <div class="col-sm-6 col-lg-4">
                                                 <div class="card border rounded-3 p-3 shadow-sm bg-white h-100">
-                                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                                        <span class="text-muted small fw-semibold text-uppercase">Total Liquid Capital</span>
-                                                        <div class="rounded-circle bg-primary-subtle text-primary p-2 d-flex align-items-center justify-content-center" style="width:36px; height:36px;">
-                                                            <i class="fa-solid fa-wallet"></i>
-                                                        </div>
-                                                    </div>
-                                                    <h3 class="fw-bold text-dark mb-0">&#8377;{{ total_liquid_balance|floatformat:2 }}</h3>
-                                                    <small class="text-muted mt-1 d-block">Combined Cash &amp; Bank Balances</small>
+                                                    <div class="text-muted small fw-semibold text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.03em;">Total Liquid Capital</div>
+                                                    <div class="fs-5 fw-bold text-dark mb-0">&#8377;{{ total_liquid_balance|floatformat:2 }}</div>
+                                                    <small class="text-muted mt-1 d-block" style="font-size: 0.78rem;">Combined Cash &amp; Bank Balances</small>
                                                 </div>
                                             </div>
                                             <div class="col-sm-6 col-lg-4">
                                                 <div class="card border rounded-3 p-3 shadow-sm bg-white h-100">
-                                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                                        <span class="text-muted small fw-semibold text-uppercase">Cash Drawers (In-Hand)</span>
-                                                        <div class="rounded-circle bg-success-subtle text-success p-2 d-flex align-items-center justify-content-center" style="width:36px; height:36px;">
-                                                            <i class="fa-solid fa-money-bill-wave"></i>
-                                                        </div>
-                                                    </div>
-                                                    <h3 class="fw-bold text-success mb-0">&#8377;{{ total_cash_balance|floatformat:2 }}</h3>
-                                                    <small class="text-muted mt-1 d-block">Physical cash across drawers &amp; petty cash</small>
+                                                    <div class="text-muted small fw-semibold text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.03em;">Cash Drawers (In-Hand)</div>
+                                                    <div class="fs-5 fw-bold text-success mb-0">&#8377;{{ total_cash_balance|floatformat:2 }}</div>
+                                                    <small class="text-muted mt-1 d-block" style="font-size: 0.78rem;">Physical cash across drawers &amp; petty cash</small>
                                                 </div>
                                             </div>
                                             <div class="col-sm-6 col-lg-4">
                                                 <div class="card border rounded-3 p-3 shadow-sm bg-white h-100">
-                                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                                        <span class="text-muted small fw-semibold text-uppercase">Banks &amp; UPI Wallets</span>
-                                                        <div class="rounded-circle bg-info-subtle text-info p-2 d-flex align-items-center justify-content-center" style="width:36px; height:36px;">
-                                                            <i class="fa-solid fa-building-columns"></i>
-                                                        </div>
-                                                    </div>
-                                                    <h3 class="fw-bold text-primary mb-0">&#8377;{{ total_bank_balance|floatformat:2 }}</h3>
-                                                    <small class="text-muted mt-1 d-block">Available digital bank balances</small>
+                                                    <div class="text-muted small fw-semibold text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.03em;">Banks &amp; UPI Wallets</div>
+                                                    <div class="fs-5 fw-bold text-primary mb-0">&#8377;{{ total_bank_balance|floatformat:2 }}</div>
+                                                    <small class="text-muted mt-1 d-block" style="font-size: 0.78rem;">Available digital bank balances</small>
                                                 </div>
                                             </div>
                                         </div>
@@ -275,35 +262,23 @@
                                                                     <div class="d-flex align-items-center gap-2 flex-wrap">
                                                                         <h6 class="fw-bold text-dark mb-0 fs-6">{{ acc.name }}</h6>
                                                                         {% if acc.account_type == 'cash' %}
-                                                                            <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle px-2 py-0.5 rounded-pill small">
-                                                                                <i class="fa-solid fa-money-bill-wave me-1"></i>Cash
-                                                                            </span>
+                                                                            <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle px-2 py-0.5 rounded-pill small">Cash</span>
                                                                         {% elif acc.account_type == 'bank' %}
-                                                                            <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle px-2 py-0.5 rounded-pill small">
-                                                                                <i class="fa-solid fa-building-columns me-1"></i>Bank
-                                                                            </span>
+                                                                            <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle px-2 py-0.5 rounded-pill small">Bank</span>
                                                                         {% else %}
-                                                                            <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2 py-0.5 rounded-pill small">
-                                                                                <i class="fa-solid fa-qrcode me-1"></i>UPI / Digital
-                                                                            </span>
+                                                                            <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2 py-0.5 rounded-pill small">UPI / Digital</span>
                                                                         {% endif %}
                                                                         {% if selected_account_id == acc.id|stringformat:'s' %}
-                                                                            <span class="badge bg-primary text-white px-2 py-0.5 rounded-pill small" style="font-size:0.7rem;">
-                                                                                <i class="fa-solid fa-filter me-1"></i>Showing Ledger
-                                                                            </span>
+                                                                            <span class="badge bg-primary text-white px-2 py-0.5 rounded-pill small" style="font-size:0.7rem;">Ledger</span>
                                                                         {% endif %}
                                                                     </div>
                                                                 </div>
                                                                 <div class="d-flex gap-1">
                                                                     {% if acc.is_default_cash %}
-                                                                        <span class="badge bg-success text-white px-2 py-1 rounded-pill small" title="Default Cash Account">
-                                                                            <i class="fa-solid fa-star me-1"></i>Default Cash
-                                                                        </span>
+                                                                        <span class="badge bg-success text-white px-2 py-0.5 rounded-pill small" title="Default Cash Account">Default Cash</span>
                                                                     {% endif %}
                                                                     {% if acc.is_default_bank %}
-                                                                        <span class="badge bg-primary text-white px-2 py-1 rounded-pill small" title="Default Bank & UPI Account">
-                                                                            <i class="fa-solid fa-star me-1"></i>Default Bank
-                                                                        </span>
+                                                                        <span class="badge bg-primary text-white px-2 py-0.5 rounded-pill small" title="Default Bank &amp; UPI Account">Default Bank</span>
                                                                     {% endif %}
                                                                 </div>
                                                             </div>
@@ -345,26 +320,26 @@
                                                         <div>
                                                             <div class="d-flex align-items-baseline justify-content-between mb-3 border-top pt-2">
                                                                 <span class="text-muted small">Current Balance</span>
-                                                                <h4 class="fw-bold {% if acc.current_balance < 0 %}text-danger{% elif acc.current_balance > 0 %}text-success{% else %}text-dark{% endif %} mb-0">
+                                                                <div class="fs-6 fw-bold {% if acc.current_balance < 0 %}text-danger{% elif acc.current_balance > 0 %}text-success{% else %}text-dark{% endif %} mb-0">
                                                                     &#8377;{{ acc.current_balance|floatformat:2 }}
-                                                                </h4>
+                                                                </div>
                                                             </div>
 
                                                             <div class="d-flex flex-wrap gap-1.5 justify-content-end align-items-center">
                                                                 <a href="?tab=bank-details&account_id={{ acc.id }}#transaction-ledger"
                                                                    class="btn {% if selected_account_id == acc.id|stringformat:'s' %}btn-primary text-white{% else %}btn-outline-dark{% endif %} btn-xs"
                                                                    title="View Ledger Statement for {{ acc.name }}">
-                                                                    <i class="fa-solid fa-receipt me-1"></i>Statement
+                                                                    Statement
                                                                 </a>
 
                                                                 {% if acc.account_type == 'cash' and not acc.is_default_cash %}
                                                                     <button type="submit" form="set-default-cash-form-{{ acc.id }}" class="btn btn-outline-success btn-xs" title="Set as primary cash drawer">
-                                                                        <i class="fa-solid fa-check me-1"></i>Set Default Cash
+                                                                        Set Default Cash
                                                                     </button>
                                                                 {% endif %}
                                                                 {% if acc.account_type != 'cash' and not acc.is_default_bank %}
                                                                     <button type="submit" form="set-default-bank-form-{{ acc.id }}" class="btn btn-outline-primary btn-xs" title="Set as primary receiving bank/UPI">
-                                                                        <i class="fa-solid fa-check me-1"></i>Set Default Bank
+                                                                        Set Default Bank
                                                                     </button>
                                                                 {% endif %}
 
@@ -381,28 +356,10 @@
                                                                         data-balance="{{ acc.current_balance }}"
                                                                         data-active="{{ acc.is_active|yesno:'true,false' }}"
                                                                         data-default-cash="{{ acc.is_default_cash|yesno:'true,false' }}"
-                                                                        data-default-bank="{{ acc.is_default_bank|yesno:'true,false' }}">
+                                                                        data-default-bank="{{ acc.is_default_bank|yesno:'true,false' }}"
+                                                                        data-has-txns="{% if acc.transactions.exists %}true{% else %}false{% endif %}">
                                                                     <i class="fa-solid fa-pen me-1"></i>Edit
                                                                 </button>
-
-                                                                {% if acc.is_default_cash or acc.is_default_bank %}
-                                                                    <button type="button" class="btn btn-outline-secondary btn-xs disabled" title="Default accounts cannot be deactivated. Designate another account as default first." style="cursor: not-allowed; opacity: 0.5;">
-                                                                        <i class="fa-solid fa-lock me-1"></i>Default
-                                                                    </button>
-                                                                {% elif acc.current_balance != 0 %}
-                                                                    <button type="button" class="btn btn-outline-warning btn-xs" title="Holds active balance &#8377;{{ acc.current_balance|floatformat:2 }}. Transfer funds out before deactivating." onclick="alert('Cannot deactivate \'{{ acc.name }}\' while it holds an active balance of &#8377;{{ acc.current_balance|floatformat:2 }}.\n\nPlease click \'Transfer Money\' to move the remaining balance out first.');">
-                                                                        <i class="fa-solid fa-ban me-1"></i>Deactivate
-                                                                    </button>
-                                                                {% else %}
-                                                                    <button type="button" class="btn btn-outline-warning btn-xs" title="Deactivate and archive account" onclick="confirmAccountAction('deactivate-account-form-{{ acc.id }}', 'Deactivate account \'{{ acc.name }}\'? It will be archived and hidden from payment options.');">
-                                                                        <i class="fa-solid fa-ban me-1"></i>Deactivate
-                                                                    </button>
-                                                                    {% if not acc.transactions.exists %}
-                                                                    <button type="button" class="btn btn-outline-danger btn-xs" title="Permanently delete unused empty account" onclick="confirmAccountAction('delete-account-form-{{ acc.id }}', 'Permanently delete empty account \'{{ acc.name }}\'?');">
-                                                                        <i class="fa-solid fa-trash"></i>
-                                                                    </button>
-                                                                    {% endif %}
-                                                                {% endif %}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -2420,9 +2377,11 @@
         <div class="modal-content shadow border-0">
             <form method="post" id="edit-account-form" action="">
                 {% csrf_token %}
+                <input type="hidden" name="status_submitted" value="1">
+                <input type="hidden" name="is_active" id="edit_is_active" value="true">
                 <div class="modal-header border-bottom">
                     <h5 class="modal-title fw-bold" id="editAccountModalLabel">
-                        <i class="fa-solid fa-pen-to-square text-primary me-2"></i>Edit Financial Account
+                        Edit Financial Account
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -2435,9 +2394,9 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold text-dark small">Account Type <span class="text-danger">*</span></label>
                         <select name="account_type" id="edit-account-type-select" class="form-select" required>
-                            <option value="cash">💵 Cash Drawer / In-Hand</option>
-                            <option value="bank">🏦 Bank Account</option>
-                            <option value="upi_wallet">📱 UPI QR / Digital Wallet</option>
+                            <option value="cash">Cash Drawer / In-Hand</option>
+                            <option value="bank">Bank Account</option>
+                            <option value="upi_wallet">UPI QR / Digital Wallet</option>
                         </select>
                     </div>
 
@@ -2488,30 +2447,29 @@
                         </div>
                     </div>
 
-                    <!-- Account Active Status Switch -->
-                    <div class="mb-3 p-3 bg-light-subtle rounded-3 border">
-                        <input type="hidden" name="status_submitted" value="1">
-                        <div class="form-check form-switch mb-1">
-                            <input class="form-check-input" type="checkbox" role="switch" name="is_active" id="edit_is_active" value="true" checked>
-                            <label class="form-check-label fw-bold small text-dark" for="edit_is_active" id="edit_is_active_label">
-                                Account Status: Active
-                            </label>
-                        </div>
-                        <div class="text-muted small" style="font-size: 0.78rem;" id="edit_is_active_hint">
-                            Toggle off to deactivate/archive this account. Deactivated accounts are hidden from payment dropdowns.
-                        </div>
-                    </div>
-
                     <div class="mb-2">
                         <label class="form-label fw-semibold text-dark small">Notes / Description</label>
                         <textarea name="notes" id="edit-account-notes" class="form-control" rows="2"></textarea>
                     </div>
                 </div>
-                <div class="modal-footer border-top bg-light">
-                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-sm btn-primary px-3">
-                        <i class="fa-solid fa-check me-1"></i> Update Account
-                    </button>
+                <div class="modal-footer border-top bg-light d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-danger" id="modal-delete-btn" title="Delete Account">
+                            <i class="fa-solid fa-trash me-1"></i>Delete
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-warning" id="modal-deactivate-btn">
+                            Deactivate
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-success" id="modal-reactivate-btn" style="display:none;">
+                            Reactivate
+                        </button>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-sm btn-primary px-3">
+                            Save Changes
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -4202,7 +4160,8 @@ document.addEventListener('DOMContentLoaded', function () {
             if (editForm) {
                 editForm.action = `/staff/accounts/${accId}/edit/`;
             }
-            document.getElementById('edit-account-name').value = this.getAttribute('data-name') || '';
+            const accName = this.getAttribute('data-name') || '';
+            document.getElementById('edit-account-name').value = accName;
             const type = this.getAttribute('data-type') || 'cash';
             editTypeSelect.value = type;
             document.getElementById('edit-account-bank').value = this.getAttribute('data-bank') || '';
@@ -4214,35 +4173,63 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('edit_is_default_cash').checked = (this.getAttribute('data-default-cash') === 'true');
             document.getElementById('edit_is_default_bank').checked = (this.getAttribute('data-default-bank') === 'true');
 
-            // Account Active Status Handling
+            // Account Status & Actions Handling (Deactivate / Reactivate / Delete)
             const isActive = (this.getAttribute('data-active') !== 'false');
-            const editIsActive = document.getElementById('edit_is_active');
-            const editIsActiveLabel = document.getElementById('edit_is_active_label');
-            const isDefault = (this.getAttribute('data-default-cash') === 'true' || this.getAttribute('data-default-bank') === 'true');
+            const isDefaultCash = (this.getAttribute('data-default-cash') === 'true');
+            const isDefaultBank = (this.getAttribute('data-default-bank') === 'true');
+            const isDefault = isDefaultCash || isDefaultBank;
             const accBalance = parseFloat(this.getAttribute('data-balance') || '0');
+            const hasTxns = (this.getAttribute('data-has-txns') === 'true');
 
+            const editIsActive = document.getElementById('edit_is_active');
             if (editIsActive) {
-                editIsActive.checked = isActive;
-                if (editIsActiveLabel) {
-                    editIsActiveLabel.textContent = isActive ? 'Account Status: Active' : 'Account Status: Deactivated (Archived)';
-                }
-                editIsActive.onchange = function () {
-                    if (!this.checked) {
+                editIsActive.value = isActive ? 'true' : 'false';
+            }
+
+            const modalDeactivateBtn = document.getElementById('modal-deactivate-btn');
+            const modalReactivateBtn = document.getElementById('modal-reactivate-btn');
+            const modalDeleteBtn = document.getElementById('modal-delete-btn');
+
+            if (modalDeactivateBtn && modalReactivateBtn) {
+                if (isActive) {
+                    modalDeactivateBtn.style.display = 'inline-block';
+                    modalReactivateBtn.style.display = 'none';
+
+                    modalDeactivateBtn.onclick = function () {
                         if (isDefault) {
                             alert('Default accounts cannot be deactivated. Please set another account as default first.');
-                            this.checked = true;
-                            if (editIsActiveLabel) editIsActiveLabel.textContent = 'Account Status: Active';
                             return;
                         }
                         if (accBalance !== 0) {
-                            alert('Cannot deactivate an account with an active balance (₹' + accBalance.toFixed(2) + ').\n\nPlease use "Transfer Money" to move the balance to another account first.');
-                            this.checked = true;
-                            if (editIsActiveLabel) editIsActiveLabel.textContent = 'Account Status: Active';
+                            alert("Cannot deactivate '" + accName + "' while it holds an active balance of ₹" + accBalance.toFixed(2) + ".\n\nPlease click 'Transfer Money' to move the remaining balance out first.");
                             return;
                         }
+                        confirmAccountAction('deactivate-account-form-' + accId, "Deactivate account '" + accName + "'? It will be archived and hidden from payment options.");
+                    };
+                } else {
+                    modalDeactivateBtn.style.display = 'none';
+                    modalReactivateBtn.style.display = 'inline-block';
+
+                    modalReactivateBtn.onclick = function () {
+                        confirmAccountAction('reactivate-account-form-' + accId, "Reactivate account '" + accName + "' and restore it to active financial accounts?");
+                    };
+                }
+            }
+
+            if (modalDeleteBtn) {
+                modalDeleteBtn.onclick = function () {
+                    if (isDefault) {
+                        alert('Default accounts cannot be deleted. Please set another account as default first.');
+                        return;
                     }
-                    if (editIsActiveLabel) {
-                        editIsActiveLabel.textContent = this.checked ? 'Account Status: Active' : 'Account Status: Deactivated (Archived)';
+                    if (accBalance !== 0) {
+                        alert("Cannot delete '" + accName + "' because it holds an active balance of ₹" + accBalance.toFixed(2) + ".\n\nPlease click 'Transfer Money' to move the remaining balance out first.");
+                        return;
+                    }
+                    if (hasTxns) {
+                        confirmAccountAction('delete-account-form-' + accId, "Account '" + accName + "' has recorded transactions. Deleting it will safely archive it to preserve financial history. Continue?");
+                    } else {
+                        confirmAccountAction('delete-account-form-' + accId, "Permanently delete account '" + accName + "'? This action cannot be undone.");
                     }
                 };
             }

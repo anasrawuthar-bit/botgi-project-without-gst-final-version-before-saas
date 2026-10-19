@@ -31,7 +31,18 @@
                     <tr>
                         <th class="ps-3">Technician</th>
                         <th class="text-end">Completed Jobs</th>
-                        <th class="text-end">Parts Total</th>
+                        <th class="text-end text-nowrap">
+                            Parts Total
+                            <button type="button" class="btn btn-link p-0 ms-1 text-muted border-0 text-decoration-none shadow-none align-baseline header-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-trigger="hover focus click" title="Spare parts and components consumed and billed within repair job tickets." aria-label="About Parts Total">
+                                <i class="fa-solid fa-circle-info text-primary opacity-75"></i>
+                            </button>
+                        </th>
+                        <th class="text-end text-nowrap">
+                            Stock Sales
+                            <button type="button" class="btn btn-link p-0 ms-1 text-muted border-0 text-decoration-none shadow-none align-baseline header-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-trigger="hover focus click" title="Direct over-the-counter retail inventory product sales made by this staff member outside repair tickets." aria-label="About Stock Sales">
+                                <i class="fa-solid fa-circle-info text-primary opacity-75"></i>
+                            </button>
+                        </th>
                         <th class="text-end">Service Total</th>
                         <th class="text-end pe-3">Actions</th>
                     </tr>
@@ -41,10 +52,14 @@
                     <tr>
                         <td class="ps-3">
                             <strong class="text-dark">{{ row.tech.user.get_full_name|default:row.tech.user.username }}</strong>
+                            {% if row.is_disabled %}
+                            <span class="badge bg-secondary-subtle text-secondary border small ms-1" style="font-size: 0.7rem;">Disabled</span>
+                            {% endif %}
                             {% if row.tech.unique_id %}<span class="d-block small text-muted">ID: {{ row.tech.unique_id }}</span>{% endif %}
                         </td>
                         <td class="text-end fw-semibold text-dark">{{ row.completed_count }}</td>
                         <td class="text-end text-muted">&#8377;{{ row.parts_total|floatformat:2 }}</td>
+                        <td class="text-end text-muted">&#8377;{{ row.stock_total|floatformat:2 }}</td>
                         <td class="text-end text-muted">&#8377;{{ row.service_total|floatformat:2 }}</td>
                         <td class="text-end pe-3">
                             <a href="{% url 'technician_report_print' row.tech.id %}" class="btn btn-sm btn-outline-primary py-0.5 px-2.5">
@@ -54,7 +69,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="text-center text-muted py-4">
+                        <td colspan="6" class="text-center text-muted py-4">
                             <i class="fa-solid fa-inbox fa-2x mb-2 d-block text-secondary opacity-50"></i>
                             No technicians found.
                         </td>

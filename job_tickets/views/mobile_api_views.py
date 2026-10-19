@@ -1,4 +1,5 @@
 import uuid
+from django.db.models import Avg, Count, Q
 from .helpers import *  # noqa: F401,F403
 from .helpers import (
     _build_checklist_schema_for_job,
@@ -61,8 +62,20 @@ def mobile_api_login(request):
         )
 
     user = authenticate(request, username=username, password=password)
-    if not user or not user.is_active:
+    if not user:
+        candidate_user = User.objects.filter(username__iexact=username).first()
+        if candidate_user and not candidate_user.is_active:
+            return JsonResponse({
+                'error': 'account_disabled',
+                'message': 'This user account is disabled. Please contact your administrator.',
+            }, status=403)
         return JsonResponse({'error': 'invalid_credentials', 'message': 'Invalid username or password.'}, status=401)
+
+    if not user.is_active:
+        return JsonResponse({
+            'error': 'account_disabled',
+            'message': 'This user account is disabled. Please contact your administrator.',
+        }, status=403)
 
     if not user.groups.filter(name='Technicians').exists():
         return JsonResponse(
@@ -2900,3 +2913,137 @@ def mobile_api_task_messages(request, task_id):
         for msg in qs
     ]
     return JsonResponse({'count': len(messages_data), 'messages': messages_data})
+
+
+@never_cache
+def mobile_api_technician_feedback(request):
+    """Returns feedback metrics and recent reviews for the authenticated technician."""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'method_not_allowed'}, status=405)
+
+    user, error_response = authenticate_mobile_request(request)
+    if error_response:
+        return error_response
+
+    technician = getattr(user, 'technician_profile', None)
+    if not technician:
+        technician = TechnicianProfile.objects.filter(user=user).first()
+
+    if not technician:
+        return JsonResponse({
+            'ok': True,
+            'metrics': {
+                'total_reviews': 0,
+                'avg_rating': 0.0,
+                'quality_score_pct': 0.0,
+                'stars_rating': 0.0,
+                'quality_grade': 'No Reviews Yet',
+                'quality_badge_class': 'bg-secondary',
+                'satisfaction_rate_pct': 0,
+                'high_ratings_count': 0,
+            },
+            'rating_breakdown': {
+                'count_10': 0,
+                'count_high': 0,
+                'count_mid': 0,
+                'count_low': 0,
+            },
+            'reviews': [],
+        })
+
+    base_qs = JobTicket.objects.filter(
+        assigned_to=technician,
+        feedback_rating__isnull=False
+    )
+
+    feedback_agg = base_qs.aggregate(
+        total=Count('id'),
+        avg=Avg('feedback_rating')
+    )
+    feedback_count = feedback_agg['total'] or 0
+    avg_feedback_rating = feedback_agg['avg'] or 0
+    quality_score_pct = round(avg_feedback_rating * 10, 1) if avg_feedback_rating else 0
+    stars_rating = round(avg_feedback_rating / 2, 1) if avg_feedback_rating else 0
+
+    if avg_feedback_rating >= 9.0:
+        quality_grade = 'Excellent'
+        quality_badge_class = 'bg-success'
+    elif avg_feedback_rating >= 8.0:
+        quality_grade = 'Very Good'
+        quality_badge_class = 'bg-success'
+    elif avg_feedback_rating >= 6.5:
+        quality_grade = 'Good'
+        quality_badge_class = 'bg-info text-dark'
+    elif avg_feedback_rating >= 5.0:
+        quality_grade = 'Average'
+        quality_badge_class = 'bg-warning text-dark'
+    elif feedback_count > 0:
+        quality_grade = 'Needs Attention'
+        quality_badge_class = 'bg-danger'
+    else:
+        quality_grade = 'No Reviews Yet'
+        quality_badge_class = 'bg-secondary'
+
+    high_ratings_count = base_qs.filter(feedback_rating__gte=8).count()
+    satisfaction_rate_pct = round((high_ratings_count / feedback_count) * 100) if feedback_count > 0 else 0
+
+    count_10 = base_qs.filter(feedback_rating=10).count()
+    count_high = base_qs.filter(feedback_rating__in=[8, 9]).count()
+    count_mid = base_qs.filter(feedback_rating__in=[6, 7]).count()
+    count_low = base_qs.filter(feedback_rating__lt=6).count()
+
+    reviews_qs = base_qs.order_by('-feedback_date', '-updated_at')
+
+    rating_filter = (request.GET.get('rating') or 'all').strip().lower()
+    if rating_filter == '10':
+        reviews_qs = reviews_qs.filter(feedback_rating=10)
+    elif rating_filter == 'high':
+        reviews_qs = reviews_qs.filter(feedback_rating__in=[8, 9])
+    elif rating_filter == 'mid':
+        reviews_qs = reviews_qs.filter(feedback_rating__in=[6, 7])
+    elif rating_filter == 'low':
+        reviews_qs = reviews_qs.filter(feedback_rating__lt=6)
+
+    query = (request.GET.get('q') or '').strip()
+    if query:
+        reviews_qs = reviews_qs.filter(
+            Q(job_code__icontains=query) |
+            Q(customer_name__icontains=query) |
+            Q(customer_phone__icontains=query) |
+            Q(device_type__icontains=query) |
+            Q(feedback_comment__icontains=query)
+        )
+
+    reviews_data = []
+    for job in reviews_qs[:100]:
+        reviews_data.append({
+            'job_code': job.job_code,
+            'customer_name': job.customer_name or 'Customer',
+            'customer_phone': job.customer_phone or '',
+            'device_type': job.device_type or '',
+            'feedback_rating': int(job.feedback_rating) if job.feedback_rating else 0,
+            'feedback_comment': job.feedback_comment or '',
+            'feedback_date': timezone.localtime(job.feedback_date).strftime('%Y-%m-%d %H:%M') if job.feedback_date else '',
+        })
+
+    return JsonResponse({
+        'ok': True,
+        'metrics': {
+            'total_reviews': feedback_count,
+            'avg_rating': round(avg_feedback_rating, 1),
+            'quality_score_pct': quality_score_pct,
+            'stars_rating': stars_rating,
+            'quality_grade': quality_grade,
+            'quality_badge_class': quality_badge_class,
+            'satisfaction_rate_pct': satisfaction_rate_pct,
+            'high_ratings_count': high_ratings_count,
+        },
+        'rating_breakdown': {
+            'count_10': count_10,
+            'count_high': count_high,
+            'count_mid': count_mid,
+            'count_low': count_low,
+        },
+        'reviews': reviews_data,
+    })
+

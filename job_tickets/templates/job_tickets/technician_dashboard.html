@@ -4,9 +4,23 @@
 {% block title %}Technician Dashboard{% endblock %}
 
 {% block content %}
-<div class="section-container">
-    <h1 class="mb-4">Technician Dashboard</h1>
-    <p class="lead">Welcome, {{ username }}!</p>
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <div>
+            <h1 class="mb-1">Technician Dashboard</h1>
+            <p class="lead text-muted mb-0">Welcome, {{ username }}!</p>
+        </div>
+        {% if feedback_count %}
+        <div>
+            <a href="{% url 'technician_feedback' %}" class="btn btn-outline-warning text-dark btn-sm rounded-pill px-3 py-1.5 shadow-sm fw-semibold d-inline-flex align-items-center" title="View customer feedback and ratings">
+                <i class="fa-solid fa-star text-warning me-1.5"></i>
+                <span class="fw-bold">{{ avg_feedback_rating }}</span><span class="text-muted small">/10</span>
+                <span class="badge {{ quality_badge_class }} ms-2">{{ quality_grade }}</span>
+                <span class="text-muted small ms-1">({{ feedback_count }} review{{ feedback_count|pluralize }})</span>
+                <i class="fa-solid fa-arrow-right ms-2 text-primary small"></i>
+            </a>
+        </div>
+        {% endif %}
+    </div>
 
     {% if warning %}
       <div class="alert alert-warning">{{ warning }}</div>
@@ -50,7 +64,8 @@
                     <th>Device</th>
                     <th>Status</th>
                     <th style="text-align:right">Parts</th>
-                    <th style="text-align:right">Service</th>
+                    <th style="text-align:right">Stock Sale</th>
+                    <th style="text-align:right">Service Charge</th>
                     <th style="text-align:right">Total</th>
                     <th>Actions</th>
                 </tr>
@@ -70,6 +85,7 @@
                         {% endif %}
                     </td>
                     <td style="text-align:right">₹{{ job.part_total|floatformat:2 }}</td>
+                    <td style="text-align:right">₹{{ job.stock_total|default_if_none:0|floatformat:2 }}</td>
                     <td style="text-align:right">₹{{ job.service_total|floatformat:2 }}</td>
                     <td style="text-align:right"><strong>₹{{ job.total|floatformat:2 }}</strong></td>
                     <td>
@@ -118,8 +134,24 @@
                     <th>Customer Name</th>
                     <th>Device</th>
                     <th>Status</th>
-                    <th style="text-align:right">Parts</th>
-                    <th style="text-align:right">Service</th>
+                    <th style="text-align:right">
+                        Parts
+                        <button type="button" class="btn btn-link p-0 ms-1 text-muted border-0 text-decoration-none shadow-none align-baseline header-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-trigger="hover focus click" title="Spare parts and components consumed and billed within repair job tickets." aria-label="About Parts Sales">
+                            <i class="fa-solid fa-circle-info text-warning opacity-75"></i>
+                        </button>
+                    </th>
+                    <th style="text-align:right">
+                        Stock Sale
+                        <button type="button" class="btn btn-link p-0 ms-1 text-muted border-0 text-decoration-none shadow-none align-baseline header-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-trigger="hover focus click" title="Direct over-the-counter retail inventory product sales made outside repair tickets." aria-label="About Stock Sales">
+                            <i class="fa-solid fa-circle-info text-success opacity-75"></i>
+                        </button>
+                    </th>
+                    <th style="text-align:right">
+                        Service Charge
+                        <button type="button" class="btn btn-link p-0 ms-1 text-muted border-0 text-decoration-none shadow-none align-baseline header-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-trigger="hover focus click" title="Technician service charges and repair fees for this job ticket." aria-label="About Service Charge">
+                            <i class="fa-solid fa-circle-info text-primary opacity-75"></i>
+                        </button>
+                    </th>
                     <th style="text-align:right">Total</th>
                     <th>Actions</th>
                 </tr>
@@ -256,6 +288,9 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.html) {
                 historyContainer.innerHTML = data.html;
+                // Re-initialize tooltips
+                const tooltips = historyContainer.querySelectorAll('[data-bs-toggle="tooltip"]');
+                tooltips.forEach(t => new bootstrap.Tooltip(t));
             } else {
                 historyContainer.innerHTML = '<div class="alert alert-warning">Error loading history. Please refresh the page.</div>';
             }
@@ -265,6 +300,10 @@ document.addEventListener('DOMContentLoaded', function() {
             historyContainer.innerHTML = '<div class="alert alert-danger">Network error. Please try again.</div>';
         });
     }
+
+    // Initialize tooltips on page load
+    const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    tooltips.forEach(t => new bootstrap.Tooltip(t));
     
     // Preset button handlers
     presetButtons.forEach(btn => {

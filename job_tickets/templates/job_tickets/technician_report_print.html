@@ -468,8 +468,13 @@
   <!-- Tab navigation pills (hidden in print) -->
   <ul class="nav nav-pills tech-report-tabs d-print-none mb-3" id="techReportTabs" role="tablist">
     <li class="nav-item" role="presentation">
-      <button class="nav-link {% if active_tab != 'monthly' %}active{% endif %}" id="jobs-tab" data-bs-toggle="pill" data-bs-target="#tab-jobs" type="button" role="tab" aria-controls="tab-jobs" aria-selected="{% if active_tab != 'monthly' %}true{% else %}false{% endif %}">
-        <i class="fa-solid fa-list-check me-1"></i> Job Records
+      <button class="nav-link {% if active_tab != 'monthly' and active_tab != 'stock' %}active{% endif %}" id="jobs-tab" data-bs-toggle="pill" data-bs-target="#tab-jobs" type="button" role="tab" aria-controls="tab-jobs" aria-selected="{% if active_tab != 'monthly' and active_tab != 'stock' %}true{% else %}false{% endif %}">
+        <i class="fa-solid fa-list-check me-1"></i> Job Records ({{ jobs_count }})
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link {% if active_tab == 'stock' %}active{% endif %}" id="stock-tab" data-bs-toggle="pill" data-bs-target="#tab-stock" type="button" role="tab" aria-controls="tab-stock" aria-selected="{% if active_tab == 'stock' %}true{% else %}false{% endif %}">
+        <i class="fa-solid fa-boxes-stacked me-1"></i> Stock Sales {% if stock_sales_count %}({{ stock_sales_count }}){% endif %}
       </button>
     </li>
     <li class="nav-item" role="presentation">
@@ -481,7 +486,7 @@
 
   <div class="tab-content" id="techReportTabContent">
     <!-- Tab 1: Job Records -->
-    <div class="tab-pane fade {% if active_tab != 'monthly' %}show active{% endif %}" id="tab-jobs" role="tabpanel" aria-labelledby="jobs-tab">
+    <div class="tab-pane fade {% if active_tab != 'monthly' and active_tab != 'stock' %}show active{% endif %}" id="tab-jobs" role="tabpanel" aria-labelledby="jobs-tab">
       <form class="tech-report-filter d-print-none" method="get">
         <div class="filter-field">
           <label for="tech-report-start">Start Date</label>
@@ -506,12 +511,6 @@
         <a class="btn btn-outline-secondary" href="{% url 'technician_report_print' technician.id %}">
           <i class="fa-solid fa-rotate-left me-1"></i>All Time
         </a>
-        <div class="d-flex align-items-center gap-1 ms-auto flex-wrap">
-          <span class="text-muted small fw-bold me-1">Status:</span>
-          <a href="?{% if report_start_date and report_end_date %}start_date={{ report_start_date }}&end_date={{ report_end_date }}&{% endif %}status=all" class="btn btn-sm {% if not selected_status or selected_status == 'all' %}btn-dark{% else %}btn-outline-secondary{% endif %}">All</a>
-          <a href="?{% if report_start_date and report_end_date %}start_date={{ report_start_date }}&end_date={{ report_end_date }}&{% endif %}status=Ready+for+Pickup" class="btn btn-sm {% if selected_status == 'Ready for Pickup' %}btn-warning text-dark fw-bold{% else %}btn-outline-warning text-dark{% endif %}">Ready for Pickup</a>
-          <a href="?{% if report_start_date and report_end_date %}start_date={{ report_start_date }}&end_date={{ report_end_date }}&{% endif %}status=Closed" class="btn btn-sm {% if selected_status == 'Closed' %}btn-success text-white fw-bold{% else %}btn-outline-success{% endif %}">Closed</a>
-        </div>
       </form>
 
       <!-- Peer Benchmark & Performance Summary Card -->
@@ -550,8 +549,8 @@
               <th>Status</th>
               <th>Completed</th>
               <th>Turnaround (TAT)</th>
-              <th class="money-cell">Part Cost</th>
-              <th class="money-cell">Service (Labor)</th>
+              <th class="money-cell">Part Cost <button type="button" class="btn btn-link p-0 ms-1 text-muted border-0 text-decoration-none shadow-none align-baseline header-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-trigger="hover focus click" title="Spare parts cost used in this repair ticket." aria-label="About Part Cost"><i class="fa-solid fa-circle-info text-warning opacity-75"></i></button></th>
+              <th class="money-cell">Service Charge <button type="button" class="btn btn-link p-0 ms-1 text-muted border-0 text-decoration-none shadow-none align-baseline header-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-trigger="hover focus click" title="Technician service charges and repair fees for this job ticket." aria-label="About Service Charge"><i class="fa-solid fa-circle-info text-primary opacity-75"></i></button></th>
               <th class="money-cell">Discount</th>
               <th class="money-cell">Net Total</th>
               <th class="money-cell">Est Profit</th>
@@ -636,18 +635,283 @@
           </tfoot>
         </table>
       </div>
+
+      <!-- Combined Sales Summary Card -->
+      <div class="card border shadow-sm mt-3 p-3 bg-light-subtle d-print-block">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+          <div>
+            <span class="small text-uppercase fw-bold text-muted d-block">
+              <i class="fa-solid fa-calculator text-primary me-1"></i>Overall Technician Contribution
+            </span>
+            <span class="fw-bold text-dark fs-6">
+              Jobs Contribution: &#8377;{{ total_income|floatformat:2 }} &nbsp;&bull;&nbsp; 
+              Stock Sales: &#8377;{{ total_stock_sales_amount|floatformat:2 }}
+            </span>
+          </div>
+          <div class="d-flex align-items-center gap-3">
+            <div class="text-end">
+              <span class="small text-muted d-block">Grand Total Revenue</span>
+              <strong class="fs-5 text-dark">&#8377;{{ total_combined_revenue|floatformat:2 }}</strong>
+            </div>
+            <div class="text-end ps-3 border-start">
+              <span class="small text-muted d-block">Total Estimated Profit</span>
+              <strong class="fs-5 text-success">&#8377;{{ total_combined_profit|floatformat:2 }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Tab 2: Monthly Breakdown -->
+    <!-- Tab 2: Stock Sales -->
+    <div class="tab-pane fade {% if active_tab == 'stock' %}show active{% endif %}" id="tab-stock" role="tabpanel" aria-labelledby="stock-tab">
+      <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+        <div>
+          <h2 class="h5 fw-bold mb-1 text-dark">
+            <i class="fa-solid fa-boxes-stacked text-primary me-2"></i>Direct Stock Sales (Retail / Over-The-Counter)
+          </h2>
+          <p class="small text-muted mb-0">
+            Direct over-the-counter inventory product sales billed by {{ technician_name }} outside repair tickets.
+          </p>
+        </div>
+        <div class="d-print-none">
+          <span class="badge bg-info-subtle text-info border border-info-subtle py-1.5 px-2.5">
+            <i class="fa-solid fa-circle-info me-1"></i>Stock sales represent direct retail inventory sales, distinct from repair parts billed in job tickets.
+          </span>
+        </div>
+      </div>
+
+      <!-- Stock Sales KPI Row -->
+      <div class="row g-2 mb-3 d-print-none">
+        <div class="col-md-3 col-6">
+          <div class="kpi-card h-100 p-2.5 shadow-sm" style="border: 1px solid var(--report-line);">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-primary-subtle text-primary p-2.5 rounded-3"><i class="fa-solid fa-cash-register fs-6"></i></span>
+              <div>
+                <p class="kpi-label mb-0">Stock Revenue</p>
+                <h4 class="kpi-value text-primary fs-5 mb-0">&#8377;{{ total_stock_sales_amount|floatformat:2 }}</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3 col-6">
+          <div class="kpi-card h-100 p-2.5 shadow-sm" style="border: 1px solid var(--report-line);">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-warning-subtle text-warning p-2.5 rounded-3"><i class="fa-solid fa-box-open fs-6"></i></span>
+              <div>
+                <p class="kpi-label mb-0">Units Sold</p>
+                <h4 class="kpi-value text-warning fs-5 mb-0">{{ total_stock_units }}</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3 col-6">
+          <div class="kpi-card h-100 p-2.5 shadow-sm" style="border: 1px solid var(--report-line);">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-secondary-subtle text-secondary p-2.5 rounded-3"><i class="fa-solid fa-tags fs-6"></i></span>
+              <div>
+                <p class="kpi-label mb-0">Product Cost (COGS)</p>
+                <h4 class="kpi-value text-secondary fs-5 mb-0">&#8377;{{ total_stock_cogs|floatformat:2 }}</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3 col-6">
+          <div class="kpi-card h-100 p-2.5 shadow-sm" style="border: 1px solid var(--report-line);">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-success-subtle text-success p-2.5 rounded-3"><i class="fa-solid fa-wallet fs-6"></i></span>
+              <div>
+                <p class="kpi-label mb-0">Stock Profit</p>
+                <h4 class="kpi-value text-success fs-5 mb-0">&#8377;{{ total_stock_profit|floatformat:2 }}</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="report-table-wrap">
+        <table class="report-table" aria-label="Technician direct stock sales">
+          <thead>
+            <tr>
+              <th>Bill #</th>
+              <th>Date</th>
+              <th>Customer / Party</th>
+              <th>Product</th>
+              <th class="text-center">Qty</th>
+              <th class="money-cell">Unit Price</th>
+              <th class="money-cell">Stock Sale Amount <button type="button" class="btn btn-link p-0 ms-1 text-muted border-0 text-decoration-none shadow-none align-baseline header-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-trigger="hover focus click" title="Direct over-the-counter retail inventory product sales revenue." aria-label="About Stock Sales"><i class="fa-solid fa-circle-info text-primary opacity-75"></i></button></th>
+              <th class="money-cell">Est Profit</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in stock_sales %}
+            <tr>
+              <td>
+                <span class="cell-main fw-bold">{{ entry.bill.bill_number|default:entry.entry_number }}</span>
+                {% if entry.invoice_number %}<span class="cell-sub">Inv: {{ entry.invoice_number }}</span>{% endif %}
+              </td>
+              <td>
+                {{ entry.entry_date|date:"d M Y" }}
+              </td>
+              <td>
+                <span class="cell-main">{{ entry.party.name|default:"Walk-in Customer" }}</span>
+                {% if entry.party.phone %}<span class="cell-sub">{{ entry.party.phone }}</span>{% endif %}
+              </td>
+              <td>
+                <span class="cell-main">{{ entry.product.name }}</span>
+                {% if entry.product.sku %}<span class="cell-sub">SKU: {{ entry.product.sku }}</span>{% endif %}
+                {% if entry.entry_type == 'sale_return' %}
+                  <span class="badge bg-warning-subtle text-warning border ms-1" style="font-size:0.7rem;">Return</span>
+                {% endif %}
+              </td>
+              <td class="text-center fw-semibold">
+                {% if entry.entry_type == 'sale_return' %}-{% endif %}{{ entry.quantity }}
+              </td>
+              <td class="money-cell">&#8377;{{ entry.unit_price|floatformat:2 }}</td>
+              <td class="money-cell fw-bold {% if entry.entry_type == 'sale_return' %}text-warning{% else %}text-dark{% endif %}">
+                {% if entry.entry_type == 'sale_return' %}-{% endif %}&#8377;{{ entry.total_amount|floatformat:2 }}
+              </td>
+              <td class="money-cell text-success fw-bold">
+                &#8377;{{ entry.line_profit|floatformat:2 }}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="8" class="empty-row text-center py-4 text-muted">
+                <i class="fa-solid fa-box-open fa-2x mb-2 d-block text-secondary opacity-50"></i>
+                No direct stock sales recorded for {{ technician_name }} in this period.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          {% if stock_sales %}
+          <tfoot>
+            <tr>
+              <th colspan="4">
+                Totals &nbsp;&middot;&nbsp; <strong>{{ stock_sales_count }} {% if stock_sales_count == 1 %}Entry{% else %}Entries{% endif %}</strong>
+              </th>
+              <td class="text-center fw-bold">{{ total_stock_units }}</td>
+              <td></td>
+              <td class="money-cell fw-bold text-dark">&#8377;{{ total_stock_sales_amount|floatformat:2 }}</td>
+              <td class="money-cell fw-bold text-success">&#8377;{{ total_stock_profit|floatformat:2 }}</td>
+            </tr>
+          </tfoot>
+          {% endif %}
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 3: Monthly Breakdown -->
     <div class="tab-pane fade {% if active_tab == 'monthly' %}show active{% endif %}" id="tab-monthly" role="tabpanel" aria-labelledby="monthly-tab">
       <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
         <div>
           <h2 class="h5 fw-bold mb-1 text-dark">
-            <i class="fa-solid fa-calendar-check text-primary me-2"></i>Monthly Closed &amp; Ready for Pickup Breakdown
+            <i class="fa-solid fa-chart-line text-primary me-2"></i>Monthly Revenue, Service Charges &amp; Parts Breakdown
           </h2>
           <p class="small text-muted mb-0">
-            Historical month-by-month values for realized closed jobs and ready-for-pickup jobs handled by {{ technician_name }} (months with zero values hidden).
+            Historical month-by-month trends for service charges, spare parts cost, realized closed volume, and ready-for-pickup jobs handled by {{ technician_name }}.
           </p>
+        </div>
+      </div>
+
+      <!-- Monthly Summary KPI Row -->
+      <div class="row g-2 mb-3 d-print-none">
+        <div class="col-lg col-md-4 col-6">
+          <div class="kpi-card h-100 p-2.5 shadow-sm" style="border: 1px solid var(--report-line);">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-primary-subtle text-primary p-2.5 rounded-3"><i class="fa-solid fa-screwdriver-wrench fs-6"></i></span>
+              <div>
+                <p class="kpi-label mb-0">Service Charges</p>
+                <h4 class="kpi-value text-primary fs-5 mb-0">&#8377;{{ monthly_breakdown_totals.service_charge|floatformat:2 }}</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg col-md-4 col-6">
+          <div class="kpi-card h-100 p-2.5 shadow-sm" style="border: 1px solid var(--report-line);">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-warning-subtle text-warning p-2.5 rounded-3"><i class="fa-solid fa-microchip fs-6"></i></span>
+              <div>
+                <p class="kpi-label mb-0">Parts Cost</p>
+                <h4 class="kpi-value text-warning fs-5 mb-0">&#8377;{{ monthly_breakdown_totals.part_cost|floatformat:2 }}</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg col-md-4 col-6">
+          <div class="kpi-card h-100 p-2.5 shadow-sm" style="border: 1px solid var(--report-line);">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge p-2.5 rounded-3" style="background-color: rgba(124, 58, 237, 0.12); color: #7c3aed;"><i class="fa-solid fa-boxes-stacked fs-6"></i></span>
+              <div>
+                <p class="kpi-label mb-0">Stock Sales</p>
+                <h4 class="kpi-value fs-5 mb-0" style="color: #7c3aed;">&#8377;{{ monthly_breakdown_totals.stock_sales|floatformat:2 }}</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg col-md-6 col-6">
+          <div class="kpi-card h-100 p-2.5 shadow-sm" style="border: 1px solid var(--report-line);">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-dark-subtle text-dark p-2.5 rounded-3"><i class="fa-solid fa-circle-check fs-6"></i></span>
+              <div>
+                <p class="kpi-label mb-0">Closed Value</p>
+                <h4 class="kpi-value text-dark fs-5 mb-0">&#8377;{{ monthly_breakdown_totals.closed_value|floatformat:2 }}</h4>
+                <small class="text-muted" style="font-size: 0.75rem;">{{ monthly_breakdown_totals.closed_count }} closed jobs</small>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg col-md-6 col-6">
+          <div class="kpi-card h-100 p-2.5 shadow-sm" style="border: 1px solid var(--report-line);">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-success-subtle text-success p-2.5 rounded-3"><i class="fa-solid fa-wallet fs-6"></i></span>
+              <div>
+                <p class="kpi-label mb-0">Combined Value</p>
+                <h4 class="kpi-value text-success fs-5 mb-0">&#8377;{{ monthly_breakdown_totals.combined_value|floatformat:2 }}</h4>
+                <small class="text-muted" style="font-size: 0.75rem;">Total Volume</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Smooth Animated Graph Card -->
+      <div class="card border-0 shadow-sm mb-4 overflow-hidden" style="border: 1px solid var(--report-line) !important; border-radius: 10px;">
+        <div class="card-header bg-white py-2.5 px-3 d-flex flex-wrap justify-content-between align-items-center gap-2 border-bottom">
+          <div class="d-flex align-items-center gap-2">
+            <span class="p-1.5 rounded-2 bg-primary-subtle text-primary">
+              <i class="fa-solid fa-chart-area"></i>
+            </span>
+            <div>
+              <h6 class="fw-bold mb-0 text-dark">Monthly Performance Dynamics</h6>
+              <small class="text-muted">Interactive visual analysis of service charges, spare parts, and revenue</small>
+            </div>
+          </div>
+          <div class="btn-group btn-group-sm d-print-none" role="group" id="techMonthlyChartToggles">
+            <button type="button" class="btn btn-outline-primary active" data-chart-mode="all">
+              <i class="fa-solid fa-layer-group me-1"></i>All Metrics
+            </button>
+            <button type="button" class="btn btn-outline-primary" data-chart-mode="service_parts">
+              <i class="fa-solid fa-scale-balanced me-1"></i>Service Charges &amp; Parts
+            </button>
+            <button type="button" class="btn btn-outline-primary" data-chart-mode="stock">
+              <i class="fa-solid fa-boxes-stacked me-1"></i>Stock Sales
+            </button>
+            <button type="button" class="btn btn-outline-primary" data-chart-mode="revenue">
+              <i class="fa-solid fa-sack-dollar me-1"></i>Total Revenue
+            </button>
+            <button type="button" class="btn btn-outline-primary" data-chart-mode="volume">
+              <i class="fa-solid fa-list-ol me-1"></i>Job Volume
+            </button>
+          </div>
+        </div>
+        <div class="card-body p-3 bg-white position-relative">
+          <div style="height: 330px; width: 100%;">
+            <canvas id="techMonthlyChart"></canvas>
+          </div>
+          <div id="techMonthlyChartEmpty" class="text-center py-5 d-none text-muted">
+            <i class="fa-solid fa-chart-line fs-1 opacity-25 mb-2"></i>
+            <p class="mb-0 fw-semibold">No historical monthly data recorded for this technician yet.</p>
+          </div>
         </div>
       </div>
 
@@ -656,11 +920,29 @@
           <thead>
             <tr>
               <th>Month</th>
+              <th class="money-cell" style="color: #2563eb;">
+                Service Charge
+                <button type="button" class="btn btn-link p-0 ms-1 text-muted border-0 text-decoration-none shadow-none align-baseline header-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-trigger="hover focus click" title="Technician service charges and repair fees billed to customers." aria-label="About Service Charge">
+                  <i class="fa-solid fa-circle-info text-primary opacity-75"></i>
+                </button>
+              </th>
+              <th class="money-cell" style="color: #d97706;">
+                Part Cost
+                <button type="button" class="btn btn-link p-0 ms-1 text-muted border-0 text-decoration-none shadow-none align-baseline header-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-trigger="hover focus click" title="Spare parts cost installed/used directly in repair tickets." aria-label="About Part Cost">
+                  <i class="fa-solid fa-circle-info text-warning opacity-75"></i>
+                </button>
+              </th>
+              <th class="money-cell" style="color: #7c3aed;">
+                Stock Sales
+                <button type="button" class="btn btn-link p-0 ms-1 text-muted border-0 text-decoration-none shadow-none align-baseline header-info-btn" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-trigger="hover focus click" title="Direct over-the-counter retail inventory product sales made outside repair tickets." aria-label="About Stock Sales">
+                  <i class="fa-solid fa-circle-info text-primary opacity-75"></i>
+                </button>
+              </th>
               <th class="money-cell">Closed Jobs</th>
               <th class="money-cell">Closed Value</th>
-              <th class="money-cell">Ready for Pickup Jobs</th>
-              <th class="money-cell">Ready for Pickup Value</th>
-              <th class="money-cell">Combined Value</th>
+              <th class="money-cell">Ready Jobs</th>
+              <th class="money-cell">Ready Value</th>
+              <th class="money-cell" style="color: #059669;">Combined Total</th>
             </tr>
           </thead>
           <tbody>
@@ -670,6 +952,9 @@
                 <span class="cell-main">{{ row.month_label }}</span>
                 <span class="cell-sub">{{ row.month_key }}</span>
               </td>
+              <td class="money-cell fw-semibold text-primary">&#8377;{{ row.service_charge|floatformat:2 }}</td>
+              <td class="money-cell fw-semibold text-warning">&#8377;{{ row.part_cost|floatformat:2 }}</td>
+              <td class="money-cell fw-semibold" style="color: #7c3aed;">&#8377;{{ row.stock_sales|default_if_none:0|floatformat:2 }}</td>
               <td class="money-cell">{{ row.closed_count }}</td>
               <td class="money-cell fw-bold text-dark">&#8377;{{ row.closed_value|floatformat:2 }}</td>
               <td class="money-cell">{{ row.ready_count }}</td>
@@ -678,7 +963,7 @@
             </tr>
             {% empty %}
             <tr>
-              <td colspan="6" class="empty-row">No closed or ready for pickup jobs recorded for this technician yet.</td>
+              <td colspan="9" class="empty-row">No closed or ready for pickup jobs recorded for this technician yet.</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -688,6 +973,9 @@
               <th>
                 Totals &nbsp;&middot;&nbsp; <strong>{{ monthly_breakdown|length }} {% if monthly_breakdown|length == 1 %}Month{% else %}Months{% endif %}</strong>
               </th>
+              <td class="money-cell text-primary">&#8377;{{ monthly_breakdown_totals.service_charge|floatformat:2 }}</td>
+              <td class="money-cell text-warning">&#8377;{{ monthly_breakdown_totals.part_cost|floatformat:2 }}</td>
+              <td class="money-cell fw-bold" style="color: #7c3aed;">&#8377;{{ monthly_breakdown_totals.stock_sales|floatformat:2 }}</td>
               <td class="money-cell">{{ monthly_breakdown_totals.closed_count }}</td>
               <td class="money-cell text-dark">&#8377;{{ monthly_breakdown_totals.closed_value|floatformat:2 }}</td>
               <td class="money-cell">{{ monthly_breakdown_totals.ready_count }}</td>
@@ -706,6 +994,10 @@
 
 {% block extra_js %}
 {% include "job_tickets/includes/print_flow_script.html" %}
+<script id="tech-monthly-chart-data" type="application/json">
+{{ monthly_chart_json|safe }}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     var hash = window.location.hash;
@@ -714,6 +1006,18 @@
       if (monthlyTabEl && window.bootstrap && window.bootstrap.Tab) {
         window.bootstrap.Tab.getOrCreateInstance(monthlyTabEl).show();
       }
+    } else if (hash === '#tab-stock') {
+      var stockTabEl = document.getElementById('stock-tab');
+      if (stockTabEl && window.bootstrap && window.bootstrap.Tab) {
+        window.bootstrap.Tab.getOrCreateInstance(stockTabEl).show();
+      }
+    }
+
+    // Initialize info tooltips
+    if (window.bootstrap && window.bootstrap.Tooltip) {
+      document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+        window.bootstrap.Tooltip.getOrCreateInstance(el);
+      });
     }
 
     var tabButtons = document.querySelectorAll('#techReportTabs button[data-bs-toggle="pill"]');
@@ -724,10 +1028,298 @@
           history.replaceState(null, null, targetId);
           if (targetId === '#tab-monthly') {
             document.title = 'Monthly Breakdown - {{ technician_name|escapejs }} | Service Billing';
+            if (window.techMonthlyChartInstance) {
+              window.techMonthlyChartInstance.resize();
+            }
+          } else if (targetId === '#tab-stock') {
+            document.title = 'Stock Sales - {{ technician_name|escapejs }} | Service Billing';
           } else {
             document.title = 'Technician Report - {{ technician_name|escapejs }} | Service Billing';
           }
         }
+      });
+    });
+
+    // Chart.js initialization
+    var rawDataEl = document.getElementById('tech-monthly-chart-data');
+    var chartCanvas = document.getElementById('techMonthlyChart');
+    if (!rawDataEl || !chartCanvas || typeof Chart === 'undefined') return;
+
+    var chartData = {};
+    try {
+      chartData = JSON.parse(rawDataEl.textContent || '{}');
+    } catch (err) {
+      chartData = {};
+    }
+
+    if (!chartData.labels || chartData.labels.length === 0) {
+      chartCanvas.parentElement.classList.add('d-none');
+      var emptyEl = document.getElementById('techMonthlyChartEmpty');
+      if (emptyEl) emptyEl.classList.remove('d-none');
+      return;
+    }
+
+    var formatCurrency = function (val) {
+      return '\u20B9' + Number(val || 0).toLocaleString('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    };
+
+    var formatCompactCurrency = function (val) {
+      if (val >= 100000) return '\u20B9' + (val / 100000).toFixed(1) + 'L';
+      if (val >= 1000) return '\u20B9' + (val / 1000).toFixed(1) + 'k';
+      return '\u20B9' + val;
+    };
+
+    var ctx = chartCanvas.getContext('2d');
+
+    // Gradients
+    var greenGradient = ctx.createLinearGradient(0, 0, 0, 300);
+    greenGradient.addColorStop(0, 'rgba(16, 185, 129, 0.22)');
+    greenGradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+    function getDatasetsForMode(mode) {
+      var serviceBar = {
+        type: 'bar',
+        label: 'Service Charge',
+        data: chartData.service_charge || [],
+        backgroundColor: 'rgba(37, 99, 235, 0.85)',
+        borderColor: '#1d4ed8',
+        borderWidth: 1.5,
+        borderRadius: 6,
+        maxBarThickness: 48,
+        order: 2,
+        yAxisID: 'y'
+      };
+      var partsBar = {
+        type: 'bar',
+        label: 'Parts Cost',
+        data: chartData.part_cost || [],
+        backgroundColor: 'rgba(245, 158, 11, 0.85)',
+        borderColor: '#d97706',
+        borderWidth: 1.5,
+        borderRadius: 6,
+        maxBarThickness: 48,
+        order: 3,
+        yAxisID: 'y'
+      };
+      var stockBar = {
+        type: 'bar',
+        label: 'Stock Sales',
+        data: chartData.stock_sales || [],
+        backgroundColor: 'rgba(124, 58, 237, 0.85)',
+        borderColor: '#7c3aed',
+        borderWidth: 1.5,
+        borderRadius: 6,
+        maxBarThickness: 48,
+        order: 4,
+        yAxisID: 'y'
+      };
+
+      if (mode === 'service_parts') {
+        return [serviceBar, partsBar, stockBar];
+      } else if (mode === 'stock') {
+        return [stockBar];
+      } else if (mode === 'revenue') {
+        return [
+          {
+            type: 'line',
+            label: 'Combined Revenue',
+            data: chartData.combined_value,
+            borderColor: '#10b981',
+            backgroundColor: greenGradient,
+            borderWidth: 3,
+            tension: 0.38,
+            fill: true,
+            pointBackgroundColor: '#10b981',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointRadius: 5,
+            pointHoverRadius: 8,
+            order: 1,
+            yAxisID: 'y'
+          },
+          {
+            type: 'line',
+            label: 'Closed Revenue',
+            data: chartData.closed_value,
+            borderColor: '#0f172a',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            tension: 0.38,
+            fill: false,
+            pointBackgroundColor: '#0f172a',
+            pointRadius: 4,
+            order: 2,
+            yAxisID: 'y'
+          }
+        ];
+      } else if (mode === 'volume') {
+        return [
+          {
+            type: 'bar',
+            label: 'Closed Jobs',
+            data: chartData.closed_count,
+            backgroundColor: 'rgba(15, 23, 42, 0.85)',
+            borderColor: '#0f172a',
+            borderWidth: 1.5,
+            borderRadius: 6,
+            maxBarThickness: 48,
+            yAxisID: 'yCount'
+          },
+          {
+            type: 'bar',
+            label: 'Ready for Pickup',
+            data: chartData.ready_count,
+            backgroundColor: 'rgba(2, 132, 199, 0.85)',
+            borderColor: '#0284c7',
+            borderWidth: 1.5,
+            borderRadius: 6,
+            maxBarThickness: 48,
+            yAxisID: 'yCount'
+          }
+        ];
+      } else {
+        // 'all' mode: Combined Revenue line + Service bar + Parts bar + Stock Sales bar
+        return [
+          {
+            type: 'line',
+            label: 'Combined Revenue',
+            data: chartData.combined_value,
+            borderColor: '#10b981',
+            backgroundColor: 'transparent',
+            borderWidth: 3,
+            tension: 0.38,
+            pointBackgroundColor: '#10b981',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointRadius: 5,
+            pointHoverRadius: 8,
+            order: 1,
+            yAxisID: 'y'
+          },
+          serviceBar,
+          partsBar,
+          stockBar
+        ];
+      }
+    }
+
+    var chartConfig = {
+      data: {
+        labels: chartData.labels,
+        datasets: getDatasetsForMode('all')
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: {
+          duration: 900,
+          easing: 'easeOutQuart'
+        },
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            align: 'end',
+            labels: {
+              usePointStyle: true,
+              pointStyle: 'circle',
+              boxWidth: 8,
+              padding: 14,
+              font: {
+                size: 12,
+                family: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+                weight: '600'
+              }
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.94)',
+            titleColor: '#f8fafc',
+            bodyColor: '#e2e8f0',
+            borderColor: 'rgba(255, 255, 255, 0.12)',
+            borderWidth: 1,
+            padding: 12,
+            cornerRadius: 8,
+            boxPadding: 4,
+            usePointStyle: true,
+            callbacks: {
+              label: function (ctx) {
+                var dsLabel = ctx.dataset.label || '';
+                var val = ctx.parsed.y;
+                if (ctx.dataset.yAxisID === 'yCount') {
+                  return ' ' + dsLabel + ': ' + val + (val === 1 ? ' job' : ' jobs');
+                }
+                return ' ' + dsLabel + ': ' + formatCurrency(val);
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: {
+              display: false
+            },
+            ticks: {
+              font: { size: 11, weight: '500' },
+              color: '#64748b'
+            }
+          },
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(226, 232, 240, 0.7)'
+            },
+            ticks: {
+              font: { size: 11 },
+              color: '#64748b',
+              callback: function (val) {
+                return formatCompactCurrency(val);
+              }
+            }
+          },
+          yCount: {
+            display: false,
+            beginAtZero: true,
+            position: 'right',
+            grid: { display: false },
+            ticks: {
+              stepSize: 1,
+              font: { size: 11 },
+              color: '#64748b'
+            }
+          }
+        }
+      }
+    };
+
+    window.techMonthlyChartInstance = new Chart(ctx, chartConfig);
+
+    // Toggle button events
+    var toggleBtns = document.querySelectorAll('#techMonthlyChartToggles button');
+    toggleBtns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        toggleBtns.forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        var mode = btn.getAttribute('data-chart-mode');
+        
+        // Show/hide yCount scale for volume mode
+        if (mode === 'volume') {
+          chartConfig.options.scales.y.display = false;
+          chartConfig.options.scales.yCount.display = true;
+        } else {
+          chartConfig.options.scales.y.display = true;
+          chartConfig.options.scales.yCount.display = false;
+        }
+        
+        window.techMonthlyChartInstance.data.datasets = getDatasetsForMode(mode);
+        window.techMonthlyChartInstance.update();
       });
     });
   });
