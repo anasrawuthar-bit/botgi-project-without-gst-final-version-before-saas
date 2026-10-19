@@ -98,6 +98,7 @@ urlpatterns = [
     path('api/job-ticket-lookup/', views.job_ticket_lookup, name='job_ticket_lookup'),
     path('api/mobile/login/', views.mobile_api_login, name='mobile_api_login'),
     path('api/mobile/qr-login/', views.mobile_api_qr_login, name='mobile_api_qr_login'),
+    path('api/mobile/logout/', views.mobile_api_logout, name='mobile_api_logout'),
     path('api/auth/qr-token/status/<str:token>/', views.qr_login_token_status, name='qr_login_token_status'),
     path('api/mobile/me/', views.mobile_api_me, name='mobile_api_me'),
     path('api/mobile/jobs/', views.mobile_api_jobs, name='mobile_api_jobs'),

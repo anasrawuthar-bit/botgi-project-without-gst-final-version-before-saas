@@ -37,18 +37,33 @@ def tech_tasks_group_name(workspace_id, tech_id):
     return f'{TECH_TASKS_PREFIX}_{workspace_id or "legacy"}_{tech_id}'
 
 
+def _extract_websocket_token(scope):
+    headers = dict(scope.get('headers', []))
+    auth_header = (headers.get(b'authorization') or b'').decode('utf-8', errors='ignore').strip()
+    if auth_header.startswith('Bearer '):
+        return auth_header.split(' ', 1)[1].strip()
+    return _query_token(scope)
+
+
 def _authenticate_websocket_user(scope):
-    """Resolve authenticated User from session or JWT token in query string."""
+    """Resolve authenticated User from session or JWT token in query string or headers."""
     user = scope.get('user')
     if user and getattr(user, 'is_authenticated', False):
         return user
 
-    token = _query_token(scope)
+    token = _extract_websocket_token(scope)
     if token:
         from .views.helpers import decode_mobile_jwt
         from django.contrib.auth.models import User
+        from .models import UserSessionActivity
         payload, error_msg = decode_mobile_jwt(token)
         if payload and not error_msg:
+            jti = payload.get('jti')
+            if jti:
+                session = UserSessionActivity.objects.filter(session_key=jti).first()
+                if session and session.status == UserSessionActivity.STATUS_LOGGED_OUT:
+                    return None
+
             user_id = payload.get('sub')
             try:
                 user = User.objects.get(id=int(user_id), is_active=True)

@@ -81,7 +81,10 @@ class AppConfig {
     if (trimmed.isEmpty) {
       return '';
     }
-    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+    // Always enforce secure HTTPS
+    if (trimmed.startsWith('http://')) {
+      trimmed = 'https://${trimmed.substring(7)}';
+    } else if (!trimmed.startsWith('https://')) {
       trimmed = 'https://$trimmed';
     }
     if (trimmed.endsWith('/')) {

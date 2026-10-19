@@ -161,6 +161,16 @@ class AuthService {
   }
 
   Future<void> logout() async {
+    if (_accessToken != null && _accessToken!.isNotEmpty) {
+      try {
+        final uri = Uri.parse('${AppConfig.baseUrl}/api/mobile/logout/');
+        await http
+            .post(uri, headers: _authHeaders())
+            .timeout(const Duration(seconds: 4));
+      } catch (_) {
+        // Proceed with local logout even if network request fails or times out
+      }
+    }
     _accessToken = null;
     _currentUser = null;
     await _tokenStore.clearToken();

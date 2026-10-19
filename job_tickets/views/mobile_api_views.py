@@ -1,3 +1,4 @@
+import os
 import uuid
 from django.db.models import Avg, Count, Q
 from .helpers import *  # noqa: F401,F403
@@ -40,6 +41,56 @@ def _mobile_request_workspace(request, user):
     return membership.workspace if membership else None
 
 
+MOBILE_LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 5
+MOBILE_LOGIN_RATE_LIMIT_TIMEOUT_SECONDS = 900  # 15 minutes
+
+
+def _check_mobile_rate_limit(request, username=None):
+    ip = get_client_ip(request)
+    ip_key = f'mobile_login_attempts_ip_{ip}'
+    ip_attempts = cache.get(ip_key, 0)
+    if ip_attempts >= MOBILE_LOGIN_RATE_LIMIT_MAX_ATTEMPTS:
+        return JsonResponse(
+            {
+                'error': 'rate_limited',
+                'message': 'Too many failed login attempts. Please try again in 15 minutes.',
+            },
+            status=429,
+        )
+
+    if username:
+        user_key = f'mobile_login_attempts_user_{username.lower()}'
+        user_attempts = cache.get(user_key, 0)
+        if user_attempts >= MOBILE_LOGIN_RATE_LIMIT_MAX_ATTEMPTS:
+            return JsonResponse(
+                {
+                    'error': 'rate_limited',
+                    'message': 'Too many failed login attempts for this user. Please try again in 15 minutes.',
+                },
+                status=429,
+            )
+    return None
+
+
+def _record_mobile_login_failure(request, username=None):
+    ip = get_client_ip(request)
+    ip_key = f'mobile_login_attempts_ip_{ip}'
+    ip_attempts = cache.get(ip_key, 0)
+    cache.set(ip_key, ip_attempts + 1, MOBILE_LOGIN_RATE_LIMIT_TIMEOUT_SECONDS)
+
+    if username:
+        user_key = f'mobile_login_attempts_user_{username.lower()}'
+        user_attempts = cache.get(user_key, 0)
+        cache.set(user_key, user_attempts + 1, MOBILE_LOGIN_RATE_LIMIT_TIMEOUT_SECONDS)
+
+
+def _clear_mobile_login_rate_limit(request, username=None):
+    ip = get_client_ip(request)
+    cache.delete(f'mobile_login_attempts_ip_{ip}')
+    if username:
+        cache.delete(f'mobile_login_attempts_user_{username.lower()}')
+
+
 @csrf_exempt
 @require_POST
 def mobile_api_login(request):
@@ -61,10 +112,15 @@ def mobile_api_login(request):
             status=400,
         )
 
+    rate_limit_resp = _check_mobile_rate_limit(request, username)
+    if rate_limit_resp:
+        return rate_limit_resp
+
     user = authenticate(request, username=username, password=password)
     if not user:
+        _record_mobile_login_failure(request, username)
         candidate_user = User.objects.filter(username__iexact=username).first()
-        if candidate_user and not candidate_user.is_active:
+        if candidate_user and candidate_user.check_password(password) and not candidate_user.is_active:
             return JsonResponse({
                 'error': 'account_disabled',
                 'message': 'This user account is disabled. Please contact your administrator.',
@@ -72,16 +128,20 @@ def mobile_api_login(request):
         return JsonResponse({'error': 'invalid_credentials', 'message': 'Invalid username or password.'}, status=401)
 
     if not user.is_active:
+        _record_mobile_login_failure(request, username)
         return JsonResponse({
             'error': 'account_disabled',
             'message': 'This user account is disabled. Please contact your administrator.',
         }, status=403)
 
     if not user.groups.filter(name='Technicians').exists():
+        _record_mobile_login_failure(request, username)
         return JsonResponse(
             {'error': 'technician_only', 'message': 'The mobile app is for technicians only.'},
             status=403,
         )
+
+    _clear_mobile_login_rate_limit(request, username)
 
     session_id = uuid.uuid4().hex
     ip = get_client_ip(request)
@@ -130,6 +190,10 @@ def mobile_api_login(request):
 @require_POST
 def mobile_api_qr_login(request):
     """Logs in a mobile device using a verified QR login token."""
+    rate_limit_resp = _check_mobile_rate_limit(request)
+    if rate_limit_resp:
+        return rate_limit_resp
+
     payload = {}
     if 'application/json' in (request.content_type or ''):
         try:
@@ -151,21 +215,27 @@ def mobile_api_qr_login(request):
 
     qr_token = MobileQrLoginToken.objects.select_related('user').filter(token=token_str).first()
     if not qr_token:
+        _record_mobile_login_failure(request)
         return JsonResponse({'error': 'invalid_token', 'message': 'Invalid QR code.'}, status=401)
 
     if not qr_token.is_valid:
+        _record_mobile_login_failure(request)
         msg = 'QR code has already been used.' if qr_token.is_used else 'QR code has expired. Please generate a new one.'
         return JsonResponse({'error': 'expired_token', 'message': msg}, status=401)
 
     user = qr_token.user
     if not user.is_active:
+        _record_mobile_login_failure(request)
         return JsonResponse({'error': 'inactive_user', 'message': 'This account is inactive.'}, status=403)
 
     if not user.groups.filter(name='Technicians').exists():
+        _record_mobile_login_failure(request)
         return JsonResponse(
             {'error': 'technician_only', 'message': 'The mobile app is for technicians only.'},
             status=403,
         )
+
+    _clear_mobile_login_rate_limit(request)
 
     device_name = (payload.get('device_name') or payload.get('device_model') or '').strip()
     ip = get_client_ip(request)
@@ -214,6 +284,32 @@ def mobile_api_qr_login(request):
             },
         }
     )
+
+
+@csrf_exempt
+@require_POST
+def mobile_api_logout(request):
+    """Revoke session and invalidate the mobile JWT token server-side."""
+    user, error_response = authenticate_mobile_request(request)
+    if error_response:
+        return error_response
+
+    auth_header = (request.headers.get('Authorization') or '').strip()
+    if auth_header.startswith('Bearer '):
+        token = auth_header.split(' ', 1)[1].strip()
+        payload, _ = decode_mobile_jwt(token)
+        if payload:
+            jti = payload.get('jti')
+            if jti:
+                UserSessionActivity.objects.filter(session_key=jti).update(
+                    status=UserSessionActivity.STATUS_LOGGED_OUT,
+                    logout_at=timezone.now(),
+                )
+
+    return JsonResponse({
+        'ok': True,
+        'message': 'Successfully logged out.',
+    })
 
 def mobile_api_me(request):
     if request.method != 'GET':
@@ -2583,7 +2679,10 @@ def mobile_api_task_detail(request, task_id):
     is_tech = hasattr(user, 'technician_profile')
 
     task = get_object_or_404(
-        Task.objects.select_related('assigned_to__user', 'created_by', 'job_reference'),
+        scope_to_workspace(
+            Task.objects.select_related('assigned_to__user', 'created_by', 'job_reference'),
+            workspace,
+        ),
         pk=task_id,
     )
 
@@ -2679,6 +2778,11 @@ def mobile_api_jobs_quicklist(request):
         return error_response
     workspace = _mobile_request_workspace(request, user)
     qs = scope_to_workspace(JobTicket.objects.exclude(status='Closed'), workspace)
+    if not user.is_staff and hasattr(user, 'technician_profile'):
+        qs = qs.filter(assigned_to=user.technician_profile)
+    elif not user.is_staff:
+        qs = qs.none()
+
     q = (request.GET.get('q') or '').strip()
     if q:
         qs = qs.filter(
@@ -2701,6 +2805,24 @@ def mobile_api_jobs_quicklist(request):
     return JsonResponse({'jobs': data})
 
 
+ALLOWED_TASK_ATTACHMENT_EXTENSIONS = {
+    '.jpg', '.jpeg', '.png', '.webp', '.gif',
+    '.pdf', '.txt', '.doc', '.docx', '.xls', '.xlsx', '.csv'
+}
+MAX_TASK_ATTACHMENT_BYTES = 10 * 1024 * 1024  # 10MB
+
+
+def _validate_task_attachment(file_obj):
+    if not file_obj:
+        return 'No file uploaded.'
+    if file_obj.size > MAX_TASK_ATTACHMENT_BYTES:
+        return 'File exceeds maximum allowed size of 10MB.'
+    ext = os.path.splitext(getattr(file_obj, 'name', '') or '')[1].lower()
+    if ext not in ALLOWED_TASK_ATTACHMENT_EXTENSIONS:
+        return f"File type '{ext}' is not permitted. Allowed: images, PDF, and office documents."
+    return None
+
+
 @csrf_exempt
 @require_POST
 def mobile_api_task_attachment_upload(request, task_id):
@@ -2709,10 +2831,19 @@ def mobile_api_task_attachment_upload(request, task_id):
     if error_response:
         return error_response
 
-    task = get_object_or_404(Task, pk=task_id)
+    workspace = _mobile_request_workspace(request, user)
+    task = get_object_or_404(scope_to_workspace(Task.objects.all(), workspace), pk=task_id)
+    is_tech = hasattr(user, 'technician_profile') and task.assigned_to == user.technician_profile
+    if user.is_staff:
+        if not user_has_staff_access(user, "task_management"):
+            return JsonResponse({'error': 'forbidden', 'message': 'Task management access required.'}, status=403)
+    elif not is_tech:
+        return JsonResponse({'error': 'forbidden', 'message': 'Access denied.'}, status=403)
+
     file_obj = request.FILES.get('file') or request.FILES.get('attachment')
-    if not file_obj:
-        return JsonResponse({'error': 'no_file', 'message': 'No file uploaded.'}, status=400)
+    val_error = _validate_task_attachment(file_obj)
+    if val_error:
+        return JsonResponse({'error': 'invalid_file', 'message': val_error}, status=400)
 
     att = TaskAttachment.objects.create(
         task=task,
@@ -2743,7 +2874,8 @@ def mobile_api_task_update_status(request, task_id):
     if error_response:
         return error_response
 
-    task = get_object_or_404(Task, pk=task_id)
+    workspace = _mobile_request_workspace(request, user)
+    task = get_object_or_404(scope_to_workspace(Task.objects.all(), workspace), pk=task_id)
     is_tech = hasattr(user, 'technician_profile') and task.assigned_to == user.technician_profile
     if user.is_staff:
         if not user_has_staff_access(user, "task_management"):
@@ -2795,12 +2927,12 @@ def mobile_api_task_accept(request, task_id):
     if not is_tech:
         return JsonResponse({'error': 'forbidden', 'message': 'Only technicians can claim tasks.'}, status=403)
 
+    workspace = _mobile_request_workspace(request, user)
     technician = user.technician_profile
     from django.db import transaction
     with transaction.atomic():
-        try:
-            task = Task.objects.select_for_update().get(id=task_id)
-        except Task.DoesNotExist:
+        task = scope_to_workspace(Task.objects.select_for_update(), workspace).filter(id=task_id).first()
+        if not task:
             return JsonResponse({'error': 'not_found', 'message': 'Task not found.'}, status=404)
 
         if not task.is_claimable:
@@ -2830,7 +2962,8 @@ def mobile_api_task_message_send(request, task_id):
     if error_response:
         return error_response
 
-    task = get_object_or_404(Task, pk=task_id)
+    workspace = _mobile_request_workspace(request, user)
+    task = get_object_or_404(scope_to_workspace(Task.objects.all(), workspace), pk=task_id)
     is_tech = hasattr(user, 'technician_profile') and task.assigned_to == user.technician_profile
     if user.is_staff:
         if not user_has_staff_access(user, "task_management"):
@@ -2851,14 +2984,18 @@ def mobile_api_task_message_send(request, task_id):
     if not body:
         return JsonResponse({'error': 'missing_body', 'message': 'Message body cannot be empty.'}, status=400)
 
+    files = request.FILES.getlist('attachments')
+    for f in files:
+        val_error = _validate_task_attachment(f)
+        if val_error:
+            return JsonResponse({'error': 'invalid_file', 'message': val_error}, status=400)
+
     msg = TaskMessage.objects.create(
         task=task,
         sender=user,
         body=body,
     )
 
-    # Handle optional file upload
-    files = request.FILES.getlist('attachments')
     for f in files:
         TaskAttachment.objects.create(
             task=task,
@@ -2889,7 +3026,8 @@ def mobile_api_task_messages(request, task_id):
     if error_response:
         return error_response
 
-    task = get_object_or_404(Task, pk=task_id)
+    workspace = _mobile_request_workspace(request, user)
+    task = get_object_or_404(scope_to_workspace(Task.objects.all(), workspace), pk=task_id)
     is_tech = hasattr(user, 'technician_profile') and task.assigned_to == user.technician_profile
     if user.is_staff:
         if not user_has_staff_access(user, "task_management"):

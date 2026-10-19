@@ -2879,14 +2879,20 @@ def due_job_reminders_api(request):
 
     now = timezone.now()
     prompt_cutoff = now - timedelta(minutes=REMINDER_PROMPT_COOLDOWN_MINUTES)
-    reminders = list(
+    workspace = getattr(request, 'current_workspace', None)
+    reminders_qs = (
         JobReminder.objects.filter(
             status=JobReminder.STATUS_PENDING,
             due_at__lte=now,
         )
         .exclude(job_ticket__status='Closed')
         .filter(Q(last_prompted_at__isnull=True) | Q(last_prompted_at__lte=prompt_cutoff))
-        .select_related('job_ticket')
+    )
+    if workspace:
+        reminders_qs = reminders_qs.filter(Q(job_ticket__workspace=workspace) | Q(job_ticket__workspace__isnull=True))
+
+    reminders = list(
+        reminders_qs.select_related('job_ticket')
         .order_by('due_at', 'id')[:5]
     )
 
@@ -2920,11 +2926,12 @@ def api_all_jobs(request):
     """API endpoint to fetch all jobs as JSON for real-time updates"""
     if not request.user.is_staff or not user_has_staff_access(request.user, "staff_dashboard"):
         return JsonResponse({'error': 'Unauthorized'}, status=403)
-    
-    jobs = JobTicket.objects.all().select_related(
+
+    workspace = getattr(request, 'current_workspace', None)
+    jobs = scope_to_workspace(JobTicket.objects.all(), workspace).select_related(
         'assigned_to__user', 'created_by'
     ).prefetch_related('service_logs').order_by('-created_at')
-    
+
     calculate_job_totals(jobs)
     
     jobs_data = []

@@ -1,0 +1,16 @@
+# Production Keystore Configuration for ZynDesk Android App
+# Copy this file to 'key.properties' in the same directory (android/key.properties).
+# DO NOT COMMIT 'key.properties' or keystore files (*.jks) to version control!
+
+# Keystore password (entered when creating the keystore)
+storePassword=your_keystore_password_here
+
+# Key alias password
+keyPassword=your_key_password_here
+
+# The alias given to the key when running keytool (e.g. 'zyndesk' or 'upload')
+keyAlias=zyndesk
+
+# Relative path from the android/app directory to the keystore file.
+# If placed in android/zyndesk-release.jks, use '../zyndesk-release.jks'.
+storeFile=../zyndesk-release.jks

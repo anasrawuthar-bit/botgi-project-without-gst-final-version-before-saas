@@ -1,62 +1,31 @@
 {% extends "job_tickets/base.html" %}
 
-{% block title %}{{ client.name }} | Client 360° Profile{% endblock %}
+{% block title %}{{ client.name }} | Client Profile{% endblock %}
+{% block auto_page_title %}{% endblock %}
 
 {% block extra_css %}
 <style>
-    .client-profile-header {
-        background: linear-gradient(135deg, #1f2a44 0%, #0d1b2a 100%);
-        color: #ffffff;
-        border-radius: 16px;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    }
-    .client-avatar-circle {
-        width: 64px;
-        height: 64px;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.15);
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.6rem;
-        font-weight: 700;
-        color: #fff;
-    }
-    .kpi-card {
-        border-radius: 14px;
-        border: 1px solid #e2e8f0;
-        background: #ffffff;
-        padding: 1.25rem;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .kpi-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
-    }
-    .kpi-title {
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        font-weight: 600;
+    .client-table thead th {
+        background-color: #f8fafc;
         color: #64748b;
-        margin-bottom: 0.4rem;
-    }
-    .kpi-val {
-        font-size: 1.6rem;
-        font-weight: 700;
-        color: #0f172a;
-        line-height: 1.1;
-    }
-    .client-table th {
-        background: #f8fafc;
-        color: #475569;
+        font-size: 0.72rem;
         font-weight: 600;
-        font-size: 0.82rem;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.04em;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 0.65rem 0.85rem;
+        white-space: nowrap;
+    }
+
+    .client-table tbody td {
+        padding: 0.7rem 0.85rem;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+        font-size: 0.84rem;
+    }
+
+    .client-table tbody tr:hover td {
+        background-color: #f8fafc;
     }
 </style>
 {% endblock %}
@@ -64,69 +33,68 @@
 {% block content %}
 <div class="section-container">
     <!-- Top Back / Action Bar -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-        <a href="{% url 'client_dashboard' %}" class="btn btn-outline-secondary btn-sm">
-            <i class="fas fa-arrow-left me-1"></i>Back to Clients Directory
-        </a>
-        <div class="d-flex flex-wrap gap-2">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3 pb-2 border-bottom">
+        <div class="d-flex align-items-center gap-2">
+            <a href="{% url 'client_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+                Back to Directory
+            </a>
+            <span class="text-muted small">|</span>
+            <span class="text-muted small">Client Profile #{{ client.id }}</span>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
             {% if whatsapp_url %}
             <a href="{{ whatsapp_url }}?text=Hello%20{{ client.name|urlencode }},%20greeting%20from%20our%20service%20center."
-               target="_blank" class="btn btn-success btn-sm">
-                <i class="fab fa-whatsapp me-1"></i>WhatsApp
+               target="_blank" class="btn btn-outline-success btn-sm">
+                WhatsApp
             </a>
             {% endif %}
-            <a href="tel:{{ client.phone }}" class="btn btn-primary btn-sm">
-                <i class="fas fa-phone me-1"></i>Call
+            <a href="tel:{{ client.phone }}" class="btn btn-outline-secondary btn-sm">
+                Call
             </a>
-            <button type="button" class="btn btn-warning btn-sm text-dark" data-bs-toggle="modal" data-bs-target="#editClientModal">
-                <i class="fas fa-edit me-1"></i>Edit Client
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editClientModal">
+                Edit Details
             </button>
-            <a href="{% url 'staff_dashboard' %}?customer_phone={{ clean_10_digit|default:client.phone }}" class="btn btn-dark btn-sm">
-                <i class="fas fa-plus-circle me-1"></i>New Job for this Client
+            <a href="{% url 'staff_dashboard' %}?customer_phone={{ clean_10_digit|default:client.phone }}" class="btn btn-primary btn-sm">
+                New Job Ticket
             </a>
         </div>
     </div>
 
-    <!-- Executive Client Profile Header -->
-    <div class="client-profile-header">
-        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-            <div class="d-flex align-items-center gap-3">
-                <div class="client-avatar-circle">
-                    <i class="fas fa-user"></i>
-                </div>
-                <div>
-                    <h2 class="h4 mb-1 fw-bold text-white d-flex align-items-center gap-2">
-                        {{ client.name }}
-                        {% if client.company_name %}
-                            <span class="badge bg-light text-dark fs-6 fw-semibold">{{ client.company_name }}</span>
-                        {% endif %}
-                    </h2>
-                    <div class="d-flex flex-wrap gap-3 text-white-50 small mt-1">
-                        <span><i class="fas fa-phone me-1 text-white"></i>{{ client.phone }}</span>
-                        {% if client.email %}
-                            <span><i class="fas fa-envelope me-1 text-white"></i>{{ client.email }}</span>
-                        {% endif %}
-                        {% if client.address %}
-                            <span><i class="fas fa-map-marker-alt me-1 text-white"></i>{{ client.address }}</span>
-                        {% endif %}
-                    </div>
+    <!-- Clean Enterprise Client Profile Header Card -->
+    <div class="card border rounded-3 p-3 mb-4 shadow-sm bg-white">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+            <div>
+                <h1 class="h5 fw-bold mb-1 text-dark d-flex align-items-center gap-2">
+                    {{ client.name }}
+                    {% if client.company_name %}
+                        <span class="badge bg-secondary-subtle text-dark border fw-normal" style="font-size: 0.78rem;">{{ client.company_name }}</span>
+                    {% endif %}
+                </h1>
+                <div class="d-flex flex-wrap gap-3 text-muted small mt-2">
+                    <span><span class="fw-semibold text-secondary">Phone:</span> {{ client.phone }}</span>
+                    {% if client.email %}
+                        <span><span class="fw-semibold text-secondary">Email:</span> {{ client.email }}</span>
+                    {% endif %}
+                    {% if client.address %}
+                        <span><span class="fw-semibold text-secondary">Address:</span> {{ client.address }}</span>
+                    {% endif %}
                 </div>
             </div>
             <div>
                 {% if total_balance_due > 0 %}
-                    <span class="badge bg-danger fs-6 px-3 py-2">
-                        <i class="fas fa-exclamation-circle me-1"></i>Credit Due: &#8377;{{ total_balance_due|floatformat:2 }}
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1.5 fw-semibold" style="font-size: 0.82rem;">
+                        Credit Due: &#8377;{{ total_balance_due|floatformat:2 }}
                     </span>
                 {% else %}
-                    <span class="badge bg-success fs-6 px-3 py-2">
-                        <i class="fas fa-check-circle me-1"></i>All Balances Settled
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 fw-semibold" style="font-size: 0.82rem;">
+                        All Balances Settled
                     </span>
                 {% endif %}
             </div>
         </div>
         {% if client.notes %}
-        <div class="mt-3 pt-3 border-top border-secondary border-opacity-50 small text-white-50">
-            <strong class="text-white"><i class="fas fa-sticky-note me-1"></i>Notes:</strong> {{ client.notes }}
+        <div class="mt-2.5 pt-2.5 border-top small text-muted">
+            <strong class="text-dark">Notes:</strong> {{ client.notes }}
         </div>
         {% endif %}
     </div>
@@ -134,45 +102,45 @@
     <!-- Financial KPI Summary Cards -->
     <div class="row g-3 mb-4">
         <div class="col-6 col-md-3">
-            <div class="kpi-card h-100">
-                <div class="kpi-title"><i class="fas fa-tools me-1 text-primary"></i>Total Jobs</div>
-                <div class="kpi-val">{{ total_jobs_count }}</div>
-                <div class="small text-muted mt-1">{{ active_jobs|length }} active in progress</div>
+            <div class="card border rounded-3 p-3 shadow-sm bg-white h-100">
+                <div class="text-muted small fw-semibold text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.03em;">Total Jobs</div>
+                <div class="fs-5 fw-bold text-dark mb-0">{{ total_jobs_count }}</div>
+                <small class="text-muted mt-1 d-block" style="font-size: 0.78rem;">{{ active_jobs|length }} active in progress</small>
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="kpi-card h-100">
-                <div class="kpi-title"><i class="fas fa-file-invoice me-1 text-info"></i>Lifetime Billed</div>
-                <div class="kpi-val">&#8377;{{ total_billed|floatformat:2 }}</div>
-                <div class="small text-muted mt-1">Gross repair total</div>
+            <div class="card border rounded-3 p-3 shadow-sm bg-white h-100">
+                <div class="text-muted small fw-semibold text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.03em;">Lifetime Billed</div>
+                <div class="fs-5 fw-bold text-dark mb-0">&#8377;{{ total_billed|floatformat:2 }}</div>
+                <small class="text-muted mt-1 d-block" style="font-size: 0.78rem;">Gross repair total</small>
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="kpi-card h-100">
-                <div class="kpi-title"><i class="fas fa-check-circle me-1 text-success"></i>Lifetime Paid</div>
-                <div class="kpi-val text-success">&#8377;{{ total_paid|floatformat:2 }}</div>
-                <div class="small text-muted mt-1">Total collected</div>
+            <div class="card border rounded-3 p-3 shadow-sm bg-white h-100">
+                <div class="text-muted small fw-semibold text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.03em;">Lifetime Paid</div>
+                <div class="fs-5 fw-bold text-success mb-0">&#8377;{{ total_paid|floatformat:2 }}</div>
+                <small class="text-muted mt-1 d-block" style="font-size: 0.78rem;">Total collected</small>
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="kpi-card h-100 border-danger-subtle bg-danger bg-opacity-10">
-                <div class="kpi-title text-danger"><i class="fas fa-hand-holding-dollar me-1 text-danger"></i>Outstanding Credit</div>
-                <div class="kpi-val text-danger">&#8377;{{ total_balance_due|floatformat:2 }}</div>
-                <div class="small text-danger mt-1">Pending balance</div>
+            <div class="card border rounded-3 p-3 shadow-sm bg-white h-100">
+                <div class="text-muted small fw-semibold text-uppercase mb-1" style="font-size: 0.72rem; letter-spacing: 0.03em;">Outstanding Credit</div>
+                <div class="fs-5 fw-bold {% if total_balance_due > 0 %}text-danger{% else %}text-dark{% endif %} mb-0">&#8377;{{ total_balance_due|floatformat:2 }}</div>
+                <small class="text-muted mt-1 d-block" style="font-size: 0.78rem;">Pending balance</small>
             </div>
         </div>
     </div>
 
     <!-- Navigation Tabs for Jobs vs Financial Ledger -->
-    <ul class="nav nav-pills mb-3 gap-2" id="clientTabs" role="tablist">
+    <ul class="nav nav-tabs mb-3" id="clientTabs" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active fw-semibold" id="jobs-tab" data-bs-toggle="pill" data-bs-target="#jobs-panel" type="button" role="tab">
-                <i class="fas fa-clipboard-list me-1"></i>Service Jobs History ({{ total_jobs_count }})
+            <button class="nav-link active fw-semibold" id="jobs-tab" data-bs-toggle="tab" data-bs-target="#jobs-panel" type="button" role="tab">
+                Service Jobs History ({{ total_jobs_count }})
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link fw-semibold" id="ledger-tab" data-bs-toggle="pill" data-bs-target="#ledger-panel" type="button" role="tab">
-                <i class="fas fa-receipt me-1"></i>Payments & Credit Ledger ({{ credit_payments|length }})
+            <button class="nav-link fw-semibold" id="ledger-tab" data-bs-toggle="tab" data-bs-target="#ledger-panel" type="button" role="tab">
+                Payments & Credit Ledger ({{ credit_payments|length }})
             </button>
         </li>
     </ul>
@@ -180,7 +148,7 @@
     <div class="tab-content" id="clientTabsContent">
         <!-- Service Jobs Tab -->
         <div class="tab-pane fade show active" id="jobs-panel" role="tabpanel">
-            <div class="card shadow-sm border-0 rounded-3">
+            <div class="card shadow-sm border rounded-3">
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0 client-table">
@@ -237,15 +205,15 @@
                                         <span class="badge bg-secondary-subtle text-dark border">{{ job.status }}</span>
                                     </td>
                                     <td class="text-end">
-                                        <a href="{% url 'staff_job_detail' job.job_code %}" class="btn btn-outline-primary btn-sm">
-                                            <i class="fas fa-external-link-alt me-1"></i>View Job
+                                        <a href="{% url 'staff_job_detail' job.job_code %}" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 0.78rem;">
+                                            View
                                         </a>
                                     </td>
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="10" class="text-center py-4 text-muted">
-                                        <i class="fas fa-inbox fa-2x mb-2 d-block"></i>No job tickets found for this client.
+                                    <td colspan="10" class="text-center py-4 text-muted small">
+                                        No service job tickets found for this client.
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -258,9 +226,9 @@
 
         <!-- Payments & Credit Ledger Tab -->
         <div class="tab-pane fade" id="ledger-panel" role="tabpanel">
-            <div class="card shadow-sm border-0 rounded-3">
-                <div class="card-header bg-light py-3">
-                    <h6 class="mb-0 fw-bold text-dark"><i class="fas fa-history me-2"></i>Payment Installments & Credit Ledger</h6>
+            <div class="card shadow-sm border rounded-3">
+                <div class="card-header bg-white py-2.5 px-3 border-bottom">
+                    <h6 class="mb-0 fw-bold text-dark small text-uppercase" style="letter-spacing: 0.03em;">Payment Installments & Credit Ledger</h6>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -313,8 +281,8 @@
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="9" class="text-center py-4 text-muted">
-                                        <i class="fas fa-file-invoice-dollar fa-2x mb-2 d-block"></i>No payment transactions recorded yet.
+                                    <td colspan="9" class="text-center py-4 text-muted small">
+                                        No payment transactions recorded yet.
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -330,9 +298,9 @@
 <!-- Edit Client Modal -->
 <div class="modal fade" id="editClientModal" tabindex="-1" aria-labelledby="editClientModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-warning-subtle text-dark">
-                <h5 class="modal-title fw-bold" id="editClientModalLabel"><i class="fas fa-user-edit me-2"></i>Edit Client Details</h5>
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light py-2.5 px-3 border-bottom">
+                <h5 class="modal-title h6 fw-bold mb-0 text-dark" id="editClientModalLabel">Edit Client Details</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form method="post" action="{% url 'edit_client' client.id %}">
@@ -340,35 +308,35 @@
                 <input type="hidden" name="next" value="{{ request.path }}">
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Customer Name <span class="text-danger">*</span></label>
+                        <label class="form-label fw-semibold small">Customer Name <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" name="name" value="{{ client.name }}" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Phone Number <span class="text-danger">*</span></label>
+                        <label class="form-label fw-semibold small">Phone Number <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" name="phone" value="{{ client.phone }}" required>
-                        <small class="text-muted">10-digit Indian phone number.</small>
+                        <small class="text-muted" style="font-size: 0.75rem;">10-digit Indian phone number.</small>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Email Address</label>
+                        <label class="form-label fw-semibold small">Email Address</label>
                         <input type="email" class="form-control" name="email" value="{{ client.email }}">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Company / Shop Name</label>
+                        <label class="form-label fw-semibold small">Company / Shop Name</label>
                         <input type="text" class="form-control" name="company_name" value="{{ client.company_name }}">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Address</label>
+                        <label class="form-label fw-semibold small">Address</label>
                         <textarea class="form-control" name="address" rows="2">{{ client.address }}</textarea>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Internal Notes</label>
+                        <label class="form-label fw-semibold small">Internal Notes</label>
                         <textarea class="form-control" name="notes" rows="2">{{ client.notes }}</textarea>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-warning text-dark fw-semibold">
-                        <i class="fas fa-save me-1"></i>Save Changes
+                <div class="modal-footer py-2 px-3 border-top bg-light">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-primary px-3">
+                        Save Changes
                     </button>
                 </div>
             </form>
